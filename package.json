@@ -1,10 +1,15 @@
 {
-  "name": "sats402",
+  "name": "sats402-monorepo",
   "private": true,
   "description": "Sats402: SDK and protocol for x402 pay-per-request payments in native sats on Tachi. Example app: one command.",
   "license": "MIT",
+  "workspaces": ["packages/*", "apps/*"],
   "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "test": "npm test --workspaces --if-present",
+    "test:live": "npm run test:live --workspaces --if-present",
     "cold-start": "node demo/cold-start.mjs",
-    "receipts": "node apps/receipts/server.mjs"
+    "receipts": "node apps/receipts/server.mjs",
+    "verify": "node packages/cli/bin/sats402.mjs verify"
   }
 }

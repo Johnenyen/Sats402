@@ -40,4 +40,7 @@ for another.
 ## Replay protection
 
 Each settlement is consumed once, keyed by `network + ":" + tx_hash` in a
-restart-durable store. A repeated settlement is rejected.
+restart-durable store (`FileReplayStore` in `@sats402/express` appends to disk;
+the in-memory store is for tests and single runs). A settlement is never
+charged twice: a retry with the same proof returns the original response while
+the server still holds it, and is rejected otherwise.

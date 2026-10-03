@@ -137,6 +137,9 @@ export async function settleTransfer(args: SettleArgs): Promise<SettlementResult
     allowInsecureHttp,
     fetchImpl: fetch,
   });
+  if (!broadcast?.tendermintTxHash) {
+    throw new Error(`broadcast rejected: ${broadcast?.log || 'no transaction hash returned'}`);
+  }
 
   // A code-0 broadcast means the mempool admitted the tx. Wait for the ledger
   // to actually apply it before reporting success.

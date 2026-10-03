@@ -12,8 +12,9 @@ Settlement is a Tachi transaction on `tachi-regtest-1`.
 ## What it delivers
 
 - **SDK for agent-to-agent and agent-to-service payments** — `@sats402/agent` (the
-  paying client), `@sats402/express` (paid services), `@sats402/verify` (a read-only
-  verifier that holds no key).
+  paying client), `@sats402/express` (the paywall behind paid services; a plain
+  Node request handler that also drops into Express), `@sats402/verify` (a
+  read-only verifier that holds no key).
 - **Support for the x402 / pay-per-request pattern** — the three x402 v2 headers
   (`PAYMENT-REQUIRED`, `PAYMENT-SIGNATURE`, `PAYMENT-RESPONSE`) and the network
   binding for the `exact` scheme. See [PROTOCOL.md](PROTOCOL.md).
@@ -47,8 +48,14 @@ for AI agents and decentralized AI networks.
 One command runs the whole loop, live:
 
 ```
-npm run cold-start
+XKIRO_API_KEY=... npm run cold-start
 ```
+
+Requirements, stated plainly: a reachable Tachi regtest daemon
+(`SATS402_DAEMON`, default `https://rpc-regtest.tachibtc.com`), demo keys
+holding a few hundred sats (the run tops up S2's key from the agent key
+automatically), and `XKIRO_API_KEY` in the environment for the inference step.
+The inference endpoint is `SATS402_XKIRO_URL`, the model is `SATS402_MODEL`.
 
 An agent asks a question and pays for the answer in native sats on Tachi. The
 service cannot answer until it has paid for the live daemon data the answer
@@ -67,8 +74,12 @@ Anyone can verify a settlement with one command. It is read-only: no keys, no
 wallet, no signing. The record is daemon-returned and re-fetchable.
 
 ```
-npx sats402 verify <txid>
+npm run verify -- <txid>
 ```
+
+The same CLI ships as the `sats402` npm package, so `npx sats402 verify <txid>`
+works from anywhere once the package is published to npm; until publication,
+run it from a checkout as above.
 
 Or paste a tx id on the receipt page (`GET /` on the receipt server), which
 also exposes the same record as JSON at `GET /receipt/:txid`.

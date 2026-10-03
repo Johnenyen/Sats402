@@ -6,9 +6,9 @@
 //
 // Both sit behind the same paywall. Neither holds a customer key.
 import http from 'node:http';
-import { paywall } from '../packages/express/dist/index.js';
-import { NETWORK_TACHI_REGTEST } from '../packages/core/dist/index.js';
-import { Sats402Agent } from '../packages/agent/dist/index.js';
+import { paywall } from '@sats402/express';
+import { NETWORK_TACHI_REGTEST } from '@sats402/core';
+import { Sats402Agent } from '@sats402/agent';
 
 const DAEMON = process.env.SATS402_DAEMON ?? 'https://rpc-regtest.tachibtc.com';
 const XKIRO_URL =

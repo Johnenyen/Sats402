@@ -9,13 +9,15 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import http from 'node:http';
+import os from 'node:os';
+import path from 'node:path';
 import {
   NETWORK_TACHI_REGTEST,
   deriveIdentity,
   formPayment,
 } from '@sats402/core';
 import { Sats402Agent, PolicyError } from '@sats402/agent';
-import { paywall, MemoryReplayStore } from '../dist/index.js';
+import { paywall, MemoryReplayStore, FileReplayStore } from '../dist/index.js';
 
 const DAEMON = 'https://rpc-regtest.tachibtc.com';
 const MNEMONIC = 'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about';
@@ -26,8 +28,13 @@ const payee = deriveIdentity(PAYEE_MNEMONIC, 'regtest', 0);
 
 let server;
 let baseUrl;
+let sharedReplayStore;
 
 test.before(async () => {
+  // A restart-durable store on disk, shared across the simulated servers.
+  sharedReplayStore = new FileReplayStore(
+    path.join(os.tmpdir(), `sats402-e2e-replay-${process.pid}.jsonl`)
+  );
   const handle = paywall({
     priceSats: 5n,
     payeeXOnly: payee.xOnly,
@@ -38,7 +45,7 @@ test.before(async () => {
       description: 'Live Tachi network stats',
       mimeType: 'application/json',
     },
-    replay: new MemoryReplayStore(),
+    replay: sharedReplayStore,
     serve: (req, res) => {
       res.statusCode = 200;
       res.setHeader('content-type', 'application/json');
@@ -82,7 +89,8 @@ test('E2E: agent pays per request and receives the resource', async () => {
   assert.ok(tx, 'settlement must re-fetch from the daemon');
   assert.ok(tx.vout.some((o) => o.owner === payee.xOnly && BigInt(o.amount) === 5n));
 
-  assert.equal(agent.spentSats, 5n);
+  // spentSats counts what left the agent's control: 5 sats paid + 1 sat fee.
+  assert.equal(agent.spentSats, 6n);
   console.log(JSON.stringify({
     e2e: 'PASSED',
     txHash: parsed.transaction,
@@ -146,7 +154,7 @@ test('server rejects a self-consistent payment with the wrong amount', async () 
   console.log(JSON.stringify({ wrong_amount: 'REJECTED', reason: receipt.errorReason }));
 });
 
-test('a replayed settlement is rejected', async () => {
+test('a replayed settlement is never charged again', async () => {
   // Pay once with a manually built payment, keep the header, send it again.
   const accepted = {
     scheme: 'exact',
@@ -178,17 +186,47 @@ test('a replayed settlement is rejected', async () => {
     headers: { 'PAYMENT-SIGNATURE': header },
   });
   assert.equal(first.status, 200, 'the first use of a settlement is accepted');
+  const firstBody = await first.text();
 
+  // PAID-BUT-EXPIRED POLICY: a retry with the same proof gets the original
+  // response back, marked as a replay, with no second charge.
   const second = await fetch(`${baseUrl}/s1/fee-estimate`, {
     headers: { 'PAYMENT-SIGNATURE': header },
   });
-  assert.equal(second.status, 402);
+  assert.equal(second.status, 200);
+  assert.equal(second.headers.get('X-Sats402-Replayed'), '1');
+  assert.equal(await second.text(), firstBody);
+
+  // A server that no longer holds the response (restart) still refuses the
+  // replay, because the consumption key is restart-durable.
+  const freshServer = http.createServer((req, res) =>
+    paywall({
+      priceSats: 5n,
+      payeeXOnly: payee.xOnly,
+      network: NETWORK_TACHI_REGTEST,
+      daemonUrl: DAEMON,
+      resource: { url: '/s1/fee-estimate' },
+      // A NEW instance on the same file: exactly what a process restart sees.
+      replay: new FileReplayStore(sharedReplayStore.filePath),
+      serve: (req2, res2) => {
+        res2.statusCode = 200;
+        res2.end('served');
+      },
+    })(req, res)
+  );
+  await new Promise((resolve) => freshServer.listen(0, '127.0.0.1', resolve));
+  const freshUrl = `http://127.0.0.1:${freshServer.address().port}/s1/fee-estimate`;
+  const third = await fetch(freshUrl, { headers: { 'PAYMENT-SIGNATURE': header } });
+  assert.equal(third.status, 402);
   const receipt = JSON.parse(
-    Buffer.from(second.headers.get('PAYMENT-RESPONSE'), 'base64').toString('utf8')
+    Buffer.from(third.headers.get('PAYMENT-RESPONSE'), 'base64').toString('utf8')
   );
   assert.equal(receipt.errorReason, 'replay_detected');
+  freshServer.close();
   console.log(JSON.stringify({
-    replay: 'REJECTED',
+    replay: 'NEVER CHARGED TWICE',
+    idempotentRetry: 'original response returned',
+    restartReplay: 'rejected (durable key store)',
     txHash: settled.txHash,
   }));
 });

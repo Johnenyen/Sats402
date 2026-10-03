@@ -9,6 +9,7 @@ import {
   HEADER_PAYMENT_REQUIRED,
   HEADER_PAYMENT_SIGNATURE,
   formPayment,
+  tachiNetworkName,
   userAddressForXOnly,
   type Identity,
   type PaymentPayload,
@@ -61,8 +62,11 @@ function decodeHeader<T>(res: Response, name: string): T | null {
 }
 
 export class Sats402Agent {
-  /** Sats spent so far in this session (settled payments only). */
+  /** Sats that have left this agent's control: settled payments plus fees. */
   spentSats = 0n;
+
+  /** Serializes settlements: concurrent calls must not double-spend inputs. */
+  private settleQueue: Promise<unknown> = Promise.resolve();
 
   constructor(readonly options: AgentOptions) {}
 
@@ -80,12 +84,13 @@ export class Sats402Agent {
 
     const accepted = this.chooseRequirement(challenge);
     const amount = BigInt(accepted.amount);
+    const fee = this.options.feeSats ?? 1n;
 
     // POLICY FIRST: a refusal here must not create a transaction.
     if (amount > this.options.policy.perCallCapSats) {
       throw new PolicyError(`payment of ${amount} sats exceeds per-call cap`, 'per_call_cap');
     }
-    if (this.spentSats + amount > this.options.policy.sessionBudgetSats) {
+    if (this.spentSats + amount + fee > this.options.policy.sessionBudgetSats) {
       throw new PolicyError(`payment of ${amount} sats exceeds session budget`, 'session_budget');
     }
     if (!this.options.policy.payeeAllowlist.includes(accepted.payTo)) {
@@ -93,13 +98,20 @@ export class Sats402Agent {
     }
 
     // SETTLE: the agent signs and broadcasts its own tachi_tx.
-    const settled = await settleTransfer({
-      identity: this.options.identity,
-      recipientAddress: userAddressForXOnly(accepted.payTo),
-      amountSats: amount,
-      feeSats: this.options.feeSats ?? 1n,
-      daemonUrl: this.options.daemonUrl,
-    });
+    const networkName = tachiNetworkName(this.options.network);
+    const settled = await this.enqueueSettle(() =>
+      settleTransfer({
+        identity: this.options.identity,
+        recipientAddress: userAddressForXOnly(accepted.payTo, networkName),
+        amountSats: amount,
+        feeSats: fee,
+        daemonUrl: this.options.daemonUrl,
+        network: networkName,
+      })
+    );
+
+    // The sats have moved on-chain regardless of what the server answers.
+    this.spentSats += amount + fee;
 
     const resource: ResourceInfo = { url };
     const payload: PaymentPayload = formPayment({
@@ -116,13 +128,17 @@ export class Sats402Agent {
       HEADER_PAYMENT_SIGNATURE,
       Buffer.from(JSON.stringify(payload)).toString('base64')
     );
-    const retry = await fetch(url, { ...init, headers: retryHeaders });
-    if (retry.ok) this.spentSats += amount;
-    return retry;
+    return fetch(url, { ...init, headers: retryHeaders });
+  }
+
+  private enqueueSettle<T>(fn: () => Promise<T>): Promise<T> {
+    const run = this.settleQueue.then(fn, fn);
+    this.settleQueue = run.catch(() => undefined);
+    return run;
   }
 
   private chooseRequirement(challenge: PaymentRequired): PaymentRequirements {
-    const wanted = challenge.accepts.find(
+    const wanted = (challenge.accepts ?? []).find(
       (a) => a.scheme === 'exact' && a.network === this.options.network
     );
     if (!wanted) {

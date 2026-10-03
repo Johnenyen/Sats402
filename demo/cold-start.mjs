@@ -9,9 +9,9 @@
 //
 // Everything is real: live daemon data, real inference, real settlements.
 // Demo keys are the public BIP-39 test vectors (fixtures, not secrets).
-import { deriveIdentity, formPayment, NETWORK_TACHI_REGTEST } from '../packages/core/dist/index.js';
-import { Sats402Agent, settleTransfer, getSpendableSats, PolicyError } from '../packages/agent/dist/index.js';
-import { verifyReceipt } from '../packages/verify/dist/index.js';
+import { deriveIdentity, formPayment, NETWORK_TACHI_REGTEST } from '@sats402/core';
+import { Sats402Agent, settleTransfer, getSpendableSats, PolicyError } from '@sats402/agent';
+import { verifyReceipt } from '@sats402/verify';
 import { startS1, startS2 } from './services.mjs';
 
 const DAEMON = process.env.SATS402_DAEMON ?? 'https://rpc-regtest.tachibtc.com';

@@ -6,7 +6,7 @@
 // Read-only: this server holds no key and broadcasts nothing. Every record it
 // shows is daemon-returned and re-fetchable.
 import http from 'node:http';
-import { verifyReceipt } from '../../packages/verify/dist/index.js';
+import { verifyReceipt } from '@sats402/verify';
 
 const DAEMON = process.env.SATS402_DAEMON ?? 'https://rpc-regtest.tachibtc.com';
 const PORT = Number(process.env.PORT ?? 8787);
@@ -114,6 +114,10 @@ const PAGE = `<!doctype html>
   </div>
 <script>
   const $ = (id) => document.getElementById(id);
+  // Daemon-returned fields are untrusted until proven hex: escape before HTML.
+  const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  }[c]));
   async function lookUp() {
     const txid = $('txid').value.trim().toLowerCase();
     if (!/^[0-9a-f]{64}$/.test(txid)) {
@@ -128,16 +132,16 @@ const PAGE = `<!doctype html>
     const rec = await res.json();
     $('result').style.display = 'block';
     $('badge').className = 'badge ' + (rec.found ? 'ok' : 'bad');
-    $('badge').textContent = rec.found ? rec.state : 'not found';
+    $('badge').textContent = rec.found ? esc(rec.state) : 'not found';
     const rows = [];
-    rows.push(['tx', '<code>' + rec.txHash + '</code>']);
+    rows.push(['tx', '<code>' + esc(rec.txHash) + '</code>']);
     if (rec.found) {
-      rows.push(['epoch', rec.epoch ?? 'n/a']);
+      rows.push(['epoch', esc(rec.epoch ?? 'n/a')]);
       for (const o of rec.outputs) {
-        rows.push(['output', '<code>' + o.owner + '</code> &middot; ' + o.amountSats + ' sats']);
+        rows.push(['output', '<code>' + esc(o.owner) + '</code> &middot; ' + esc(o.amountSats) + ' sats']);
       }
       for (const owner of rec.inputOwners) {
-        rows.push(['input owner', '<code>' + owner + '</code>']);
+        rows.push(['input owner', '<code>' + esc(owner) + '</code>']);
       }
     }
     $('table').innerHTML = rows.map(([k, v]) => '<tr><td>' + k + '</td><td>' + v + '</td></tr>').join('');
@@ -162,22 +166,34 @@ const server = http.createServer(async (req, res) => {
 
   const match = url.pathname.match(/^\/receipt\/([0-9a-fA-F]{64})$/);
   if (match) {
-    const check = await verifyReceipt(
-      DAEMON,
-      match[1].toLowerCase(),
-      url.searchParams.get('payee') || url.searchParams.get('amount')
-        ? {
-            payee: url.searchParams.get('payee') ?? undefined,
-            amountSats: url.searchParams.get('amount')
-              ? BigInt(url.searchParams.get('amount'))
-              : undefined,
-          }
-        : undefined
-    );
-    res.statusCode = 200;
-    res.setHeader('content-type', 'application/json');
-    res.end(JSON.stringify(check, null, 2));
-    return;
+    try {
+      const amountParam = url.searchParams.get('amount');
+      if (amountParam !== null && !/^[0-9]+$/.test(amountParam)) {
+        res.statusCode = 400;
+        res.setHeader('content-type', 'application/json');
+        res.end(JSON.stringify({ error: 'amount must be a decimal sat string' }));
+        return;
+      }
+      const check = await verifyReceipt(
+        DAEMON,
+        match[1].toLowerCase(),
+        url.searchParams.get('payee') || amountParam
+          ? {
+              payee: url.searchParams.get('payee') ?? undefined,
+              amountSats: amountParam ? BigInt(amountParam) : undefined,
+            }
+          : undefined
+      );
+      res.statusCode = 200;
+      res.setHeader('content-type', 'application/json');
+      res.end(JSON.stringify(check, null, 2));
+      return;
+    } catch (err) {
+      res.statusCode = 500;
+      res.setHeader('content-type', 'application/json');
+      res.end(JSON.stringify({ error: String(err instanceof Error ? err.message : err) }));
+      return;
+    }
   }
 
   res.statusCode = 404;

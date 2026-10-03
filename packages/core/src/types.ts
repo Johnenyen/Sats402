@@ -29,6 +29,16 @@ export const NETWORK_TACHI_REGTEST =
 /** Domain-separation tag for the bound-message signature. */
 export const BOUND_MESSAGE_TAG = 'sats402-exact-tachi:v1' as const;
 
+/**
+ * Tachi network name for a CAIP-2 network id (the TAURUS SDK network name).
+ * Regtest is the build target; signet becomes a second mapping entry when
+ * Tachi grants write access.
+ */
+export function tachiNetworkName(networkId: string): 'regtest' {
+  if (networkId === NETWORK_TACHI_REGTEST) return 'regtest';
+  throw new Error(`unsupported network id: ${networkId}`);
+}
+
 /** ResourceInfo object (x402 v2). */
 export interface ResourceInfo {
   url: string;

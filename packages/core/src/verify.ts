@@ -31,6 +31,9 @@ export function verifyPayment(payload: PaymentPayload, nowSeconds?: number): Ver
   if (!p || !accepted) return fail(ErrorCode.INVALID_PAYMENT_PAYLOAD, 'missing payload or accepted');
   if (payload.x402Version !== X402_VERSION) return fail(ErrorCode.INVALID_PAYMENT_PAYLOAD, 'x402Version');
   if (accepted.scheme !== 'exact') return fail(ErrorCode.INVALID_PAYMENT_REQUIREMENTS, 'scheme');
+  if (!/^tachi:[0-9a-f]{32}$/.test(accepted.network)) {
+    return fail(ErrorCode.NETWORK_MISMATCH, 'network must be tachi:<32 hex genesis prefix>');
+  }
   if (!DECIMAL.test(accepted.amount) || accepted.amount === '0') {
     return fail(ErrorCode.INVALID_PAYMENT_REQUIREMENTS, 'amount must be a positive sat string');
   }
@@ -71,6 +74,14 @@ export function verifyPayment(payload: PaymentPayload, nowSeconds?: number): Ver
   return { ok: true };
 }
 
+/** Thrown when a daemon lookup fails transiently; distinct from "not found". */
+export class SettlementLookupError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'SettlementLookupError';
+  }
+}
+
 /**
  * Read the daemon for the settlement transaction. Read-only.
  * GET <daemonUrl>/tachi_search?q=<txHash>
@@ -78,7 +89,9 @@ export function verifyPayment(payload: PaymentPayload, nowSeconds?: number): Ver
  * The daemon returns `{ type: "tx", result: { txHash, state, vin, vout } }`.
  * Input records reference the spent outputs as `txid` + `vout` index and carry
  * no owner field, so this resolves each input's owner from the referenced
- * transaction's outputs (additional read-only GETs).
+ * record (additional read-only GETs). Lookups retry on transient failure and
+ * throw {@link SettlementLookupError} rather than silently reporting an empty
+ * owner, which would wrongly reject a valid payment.
  */
 export async function fetchSettlement(
   daemonUrl: string,
@@ -127,42 +140,64 @@ async function fetchTx(
  * Resolve the owner of a spent input. The daemon serves two record shapes from
  * `tachi_search`: `vtxo` records carry `Owner` as base64 of the 32-byte x-only
  * key; `tx` records carry output owners as hex. Both are read-only GETs.
+ * Transient failures retry, then throw SettlementLookupError: a lookup failure
+ * must never masquerade as "payer does not own inputs".
  */
 async function resolveInputOwner(
   base: string,
   ref: string,
   voutIndex: number,
-  fetchImpl: typeof fetch
+  fetchImpl: typeof fetch,
+  attempts = 3
 ): Promise<string> {
-  try {
-    const res = await fetchImpl(`${base}/tachi_search?q=${ref}`);
-    if (!res.ok) return '';
-    const body = (await res.json()) as {
-      type?: string;
-      result?: Record<string, unknown> & { vout?: Array<{ owner?: string }> };
-    };
-    const r = body?.result;
-    if (!r) return '';
-    if (body.type === 'vtxo') {
-      const owner = (r as { Owner?: string }).Owner;
-      return owner ? Buffer.from(owner, 'base64').toString('hex') : '';
+  let lastError = '';
+  for (let attempt = 1; attempt <= attempts; attempt++) {
+    try {
+      const res = await fetchImpl(`${base}/tachi_search?q=${ref}`);
+      if (!res.ok) {
+        lastError = `daemon returned ${res.status}`;
+        continue;
+      }
+      const body = (await res.json()) as {
+        type?: string;
+        result?: Record<string, unknown> & { vout?: Array<{ owner?: string }> };
+      };
+      const r = body?.result;
+      if (!r) return ''; // genuinely no record: not a lookup failure
+      if (body.type === 'vtxo') {
+        const owner = (r as { Owner?: string }).Owner;
+        return owner ? Buffer.from(owner, 'base64').toString('hex').toLowerCase() : '';
+      }
+      if (body.type === 'tx') {
+        return (r.vout?.[voutIndex]?.owner ?? '').toLowerCase();
+      }
+      return '';
+    } catch (err) {
+      lastError = String(err instanceof Error ? err.message : err);
     }
-    if (body.type === 'tx') {
-      return r.vout?.[voutIndex]?.owner ?? '';
-    }
-    return '';
-  } catch {
-    return '';
   }
+  throw new SettlementLookupError(
+    `daemon lookup failed for input ${ref} after ${attempts} attempts: ${lastError}`
+  );
 }
 
 /**
  * Verify the settlement against daemon state:
- * the transaction exists, its outputs include at least `value` sats owned by
- * the payee, and the payer owns the spent inputs.
+ * the transaction exists, is committed, is the transaction the payload names,
+ * its outputs include at least `value` sats owned by the payee, and the payer
+ * owns the spent inputs.
  */
 export function verifySettlement(payload: PaymentPayload, tx: TachiTxRecord | null): VerifyResult {
   if (!tx) return fail(ErrorCode.SETTLEMENT_NOT_FOUND, 'daemon returned no such transaction');
+
+  const named = payload.payload.settlement.txHash.toLowerCase();
+  if (tx.hash.toLowerCase() !== named) {
+    return fail(ErrorCode.SETTLEMENT_NOT_FOUND, 'daemon record is for a different transaction');
+  }
+  if (tx.state !== 'committed') {
+    return fail(ErrorCode.SETTLEMENT_NOT_FOUND, `transaction state is ${tx.state}, need committed`);
+  }
+
   const a = payload.payload.authorization;
 
   const paidToPayee = tx.vout
