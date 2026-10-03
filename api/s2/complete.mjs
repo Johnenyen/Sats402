@@ -6,12 +6,15 @@
 //
 // S2 cannot answer until it has paid S1 for the live fact the answer needs:
 // that inner payment is a real settlement signed by S2's own key.
-import { paywall } from '@sats402/express';
+import { paywall, FileReplayStore } from '@sats402/express';
 import { Sats402Agent } from '@sats402/agent';
 import { deriveIdentity, NETWORK_TACHI_REGTEST } from '@sats402/core';
+import { readJson } from '../_lib/readjson.mjs';
 
 const DAEMON = process.env.SATS402_DAEMON ?? 'https://rpc-regtest.tachibtc.com';
-const S1_URL = process.env.SATS402_S1_URL ?? '';
+// Fixed outbound origin: never built from the request Host header.
+const SELF = process.env.SATS402_PUBLIC_URL ?? 'https://sats402-receipts.vercel.app';
+const S1_URL = process.env.SATS402_S1_URL ?? `${SELF}/api/s1/stats`;
 const S2_MNEMONIC =
   process.env.SATS402_S2_MNEMONIC ??
   'letter advice cage absurd amount doctor acoustic avoid letter advice cage above';
@@ -40,11 +43,11 @@ const s2Agent = new Sats402Agent({
 });
 
 function readBody(req) {
-  return new Promise((resolve) => {
-    const chunks = [];
-    req.on('data', (c) => chunks.push(c));
-    req.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')));
-  });
+  return readJson(req);
+}
+
+function b64(value) {
+  return JSON.parse(Buffer.from(value, 'base64').toString('utf8'));
 }
 
 const handle = paywall({
@@ -52,55 +55,61 @@ const handle = paywall({
   payeeXOnly: s2.xOnly,
   network: NETWORK_TACHI_REGTEST,
   daemonUrl: DAEMON,
+  // Durable for the lifetime of this instance (/tmp survives warm calls);
+  // combined with a short challenge window this bounds replay.
+  replay: new FileReplayStore('/tmp/sats402-replay-s2.jsonl'),
+  maxTimeoutSeconds: 120,
   resource: {
     description: 'A paid AI completion grounded in live Tachi daemon data',
     mimeType: 'application/json',
   },
   serve: async (req, res) => {
-    const body = JSON.parse((await readBody(req)) || '{}');
-    const origin = `https://${req.headers.host}`;
+    const body = await readBody(req);
 
     // S2 CANNOT ANSWER UNTIL IT HAS PAID S1 for the live fact.
-    const factRes = await s2Agent.fetch(S1_URL || `${origin}/api/s1/stats`);
+    const factRes = await s2Agent.fetch(S1_URL);
     const fact = await factRes.json();
-    const factReceipt = JSON.parse(
-      Buffer.from(factRes.headers.get('PAYMENT-RESPONSE'), 'base64').toString('utf8')
-    );
+    const factReceiptRaw = factRes.headers.get('PAYMENT-RESPONSE');
+    const factReceipt = factReceiptRaw ? b64(factReceiptRaw) : { transaction: 'n/a' };
 
     const apiKey = process.env.XKIRO_API_KEY ?? '';
     let answer;
     if (!apiKey) {
       answer = 'Inference unavailable: XKIRO_API_KEY is not set on the server.';
     } else {
-      const completion = await fetch(XKIRO_URL, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${apiKey}`,
-          'Content-Type': 'application/json',
-          'User-Agent': BROWSER_UA,
-        },
-        body: JSON.stringify({
-          model: MODEL,
-          max_tokens: 300,
-          messages: [
-            {
-              role: 'system',
-              content:
-                'You are a Tachi network analyst. Answer in under 80 words. Use only the paid live data provided.',
-            },
-            {
-              role: 'user',
-              content: `Question: ${body.question ?? ''}\nPaid live daemon data: ${JSON.stringify(fact)}`,
-            },
-          ],
-        }),
-      });
-      const parsed = await completion.json();
-      const message = parsed?.choices?.[0]?.message ?? {};
-      answer =
-        message.content ||
-        message.reasoning_content ||
-        `completion unavailable (${completion.status})`;
+      try {
+        const completion = await fetch(XKIRO_URL, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${apiKey}`,
+            'Content-Type': 'application/json',
+            'User-Agent': BROWSER_UA,
+          },
+          body: JSON.stringify({
+            model: MODEL,
+            max_tokens: 300,
+            messages: [
+              {
+                role: 'system',
+                content:
+                  'You are a Tachi network analyst. Answer in under 80 words. Use only the paid live data provided.',
+              },
+              {
+                role: 'user',
+                content: `Question: ${body.question ?? ''}\nPaid live daemon data: ${JSON.stringify(fact)}`,
+              },
+            ],
+          }),
+        });
+        const parsed = await completion.json().catch(() => ({}));
+        const message = parsed?.choices?.[0]?.message ?? {};
+        answer =
+          message.content ||
+          message.reasoning_content ||
+          `completion unavailable (${completion.status})`;
+      } catch (err) {
+        answer = `completion unavailable: ${String(err instanceof Error ? err.message : err)}`;
+      }
     }
 
     res.statusCode = 200;

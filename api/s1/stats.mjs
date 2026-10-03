@@ -5,7 +5,7 @@
 //   with a verified payment: 200 + live Tachi daemon data + PAYMENT-RESPONSE
 //
 // Holds no customer key. It only sells reads of live daemon state.
-import { paywall } from '@sats402/express';
+import { paywall, FileReplayStore } from '@sats402/express';
 import { deriveIdentity, NETWORK_TACHI_REGTEST } from '@sats402/core';
 
 const DAEMON = process.env.SATS402_DAEMON ?? 'https://rpc-regtest.tachibtc.com';
@@ -32,6 +32,11 @@ const handle = paywall({
   payeeXOnly: s1.xOnly,
   network: NETWORK_TACHI_REGTEST,
   daemonUrl: DAEMON,
+  // Durable for the lifetime of this instance (/tmp survives warm calls);
+  // combined with a short challenge window this bounds replay. Self-hosters
+  // should mount FileReplayStore on persistent storage.
+  replay: new FileReplayStore('/tmp/sats402-replay-s1.jsonl'),
+  maxTimeoutSeconds: 120,
   resource: {
     description: 'Live Tachi daemon data: fee estimate and epoch height',
     mimeType: 'application/json',

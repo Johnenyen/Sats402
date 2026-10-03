@@ -115,24 +115,33 @@
       $('note').textContent = 'A transaction id is 64 hex characters.';
       return;
     }
-    const res = await fetch('/receipt/' + txid);
-    const rec = await res.json();
-    $('result').style.display = 'block';
-    $('badge').className = 'badge ' + (rec.found ? 'ok' : 'bad');
-    $('badge').textContent = rec.found ? esc(rec.state) : 'not found';
-    const rows = [];
-    rows.push(['tx', '<code>' + esc(rec.txHash) + '</code>']);
-    if (rec.found) {
-      rows.push(['epoch', esc(rec.epoch ?? 'n/a')]);
-      for (const o of rec.outputs) {
-        rows.push(['output', '<code>' + esc(o.owner) + '</code> &middot; ' + esc(o.amountSats) + ' sats']);
+    try {
+      const res = await fetch('/receipt/' + txid);
+      const rec = await res.json();
+      $('result').style.display = 'block';
+      $('badge').className = 'badge ' + (rec.found ? 'ok' : 'bad');
+      $('badge').textContent = rec.found ? esc(rec.state) : 'not found';
+      const rows = [];
+      rows.push(['tx', '<code>' + esc(rec.txHash ?? txid) + '</code>']);
+      if (rec.found) {
+        rows.push(['epoch', esc(rec.epoch ?? 'n/a')]);
+        for (const o of rec.outputs ?? []) {
+          rows.push(['output', '<code>' + esc(o.owner) + '</code> &middot; ' + esc(o.amountSats) + ' sats']);
+        }
+        for (const owner of rec.inputOwners ?? []) {
+          rows.push(['input owner', '<code>' + esc(owner) + '</code>']);
+        }
       }
-      for (const owner of rec.inputOwners) {
-        rows.push(['input owner', '<code>' + esc(owner) + '</code>']);
-      }
+      $('table').innerHTML = rows.map(([k, v]) => '<tr><td>' + k + '</td><td>' + v + '</td></tr>').join('');
+      $('note').textContent = (rec.notes ?? []).join(' ') || (rec.error ? 'error: ' + rec.error : '');
+    } catch (err) {
+      $('result').style.display = 'block';
+      $('badge').className = 'badge bad';
+      $('badge').textContent = 'lookup failed';
+      $('table').innerHTML = '';
+      $('note').textContent =
+        'The lookup could not be completed (' + err + '). The daemon may be busy; try again.';
     }
-    $('table').innerHTML = rows.map(([k, v]) => '<tr><td>' + k + '</td><td>' + v + '</td></tr>').join('');
-    $('note').textContent = rec.notes.join(' ');
   }
   $('go').addEventListener('click', lookUp);
   $('txid').addEventListener('keydown', (e) => { if (e.key === 'Enter') lookUp(); });

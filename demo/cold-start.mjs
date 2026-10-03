@@ -116,13 +116,19 @@ async function main() {
   // ---- BURST: high-velocity proof ------------------------------------
   line('[burst] 20 paid S1 calls, live counter, measured latency');
   const latencies = [];
+  const burstTxIds = [];
   for (let i = 1; i <= 20; i++) {
     const start = Date.now();
     const r = await buyer.fetch(s1Svc.url);
     const ms = Date.now() - start;
     latencies.push(ms);
+    const receiptRaw = r.headers.get('PAYMENT-RESPONSE');
+    const receipt = receiptRaw
+      ? JSON.parse(Buffer.from(receiptRaw, 'base64').toString('utf8'))
+      : null;
+    if (receipt?.transaction) burstTxIds.push(receipt.transaction);
     const ok = r.status === 200;
-    line(`  ${String(i).padStart(2)}/20  ${ok ? 'paid + served' : `status ${r.status}`}  ${ms} ms`);
+    line(`  ${String(i).padStart(2)}/20  ${ok ? 'paid + served' : `status ${r.status}`}  ${ms} ms  tx ${receipt?.transaction ?? 'n/a'}`);
     if (!ok) break;
   }
   latencies.sort((a, b) => a - b);
@@ -199,6 +205,63 @@ async function main() {
   line(`  failures:  wrong amount rejected by the server, over-budget call refused locally`);
   line(`  agent spent this session: ${buyer.spentSats} sats of a 500-sat budget`);
   line(`  total wall time: ${Math.round((Date.now() - t0) / 1000)} s`);
+
+  // ---- PUBLISHED EVIDENCE (the numbers on the website come from here) --
+  const evidence = {
+    run_at: new Date().toISOString(),
+    network: 'tachi-regtest-1',
+    daemon: DAEMON,
+    model: MODEL,
+    prompt: PROMPT,
+    answer: body.answer,
+    receipts: [
+      {
+        what: 'buy the answer',
+        description: 'agent -> S2 (model completion), agent-to-agent',
+        amountSats: '50',
+        tx: receiptHeader.transaction,
+        state: r1.state,
+        epoch: r1.epoch,
+      },
+      {
+        what: 'buy the fact',
+        description: 'S2 -> S1 (live daemon read), agent-to-service',
+        amountSats: '5',
+        tx: body.s1_payment.tx,
+        state: r2.state,
+        epoch: r2.epoch,
+      },
+    ],
+    burst: {
+      count: latencies.length,
+      latencies_ms: latencies,
+      p50_ms: pct(50),
+      p95_ms: pct(95),
+      max_ms: latencies[latencies.length - 1],
+      txids: burstTxIds,
+    },
+    failures: [
+      {
+        what: 'wrong amount',
+        description: 'a signed payment for 49 sats against a 50-sat challenge',
+        result: 'rejected by the server: invalid_payment_requirements',
+        second_charge: false,
+      },
+      {
+        what: 'over session budget',
+        description: 'a call that would break the agent session budget',
+        result: 'refused locally by the agent',
+        transaction_made: false,
+      },
+    ],
+    agent_spent_sats: String(buyer.spentSats),
+  };
+  const evidencePath = new URL('../apps/site/run-evidence.json', import.meta.url);
+  await (await import('node:fs/promises')).writeFile(
+    evidencePath,
+    JSON.stringify(evidence, null, 2) + '\n'
+  );
+  line(`  evidence: apps/site/run-evidence.json (${burstTxIds.length} burst tx ids published)`);
 
   s1Svc.server.close();
   s2Svc.server.close();

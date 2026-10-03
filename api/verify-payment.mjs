@@ -10,6 +10,7 @@ import {
   fetchSettlement,
   SettlementLookupError,
 } from '@sats402/core/verify';
+import { readJson } from './_lib/readjson.mjs';
 
 export default async function handler(req, res) {
   res.setHeader('access-control-allow-origin', '*');
@@ -20,19 +21,8 @@ export default async function handler(req, res) {
     return;
   }
 
-  let body = '';
-  for await (const chunk of req) body += chunk;
-
-  let payload;
-  try {
-    const parsed = JSON.parse(body || '{}');
-    payload = parsed.payload ?? parsed;
-  } catch {
-    res.statusCode = 400;
-    res.setHeader('content-type', 'application/json');
-    res.end(JSON.stringify({ error: 'body must be JSON' }));
-    return;
-  }
+  const parsed = await readJson(req);
+  const payload = parsed.payload ?? parsed;
 
   const checks = [];
   const local = verifyPayment(payload);

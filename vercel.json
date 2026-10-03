@@ -1,5 +1,5 @@
 {
-  "buildCommand": "npm run build && mkdir -p public && cp apps/site/index.html public/index.html && cp apps/receipts/page.html public/receipts.html",
+  "buildCommand": "npm run build && mkdir -p public && cp apps/site/index.html public/index.html && cp apps/receipts/page.html public/receipts.html && cp apps/site/run-evidence.json public/run-evidence.json",
   "outputDirectory": "public",
   "framework": null,
   "functions": {

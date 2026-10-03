@@ -201,48 +201,22 @@
     <div class="frame" id="run">
       <h2>The example app run, verifiable live</h2>
       <p class="section-sub">
-        These are the receipts of a real run of the example app on Tachi regtest.
-        Statuses below are fetched from the Tachi daemon <em>as you view this page</em>:
-        re-fetch them yourself with <code>sats402 verify &lt;txid&gt;</code>.
+        Everything below is rendered from the committed run evidence
+        (<code>apps/site/run-evidence.json</code>), which lists every settlement
+        transaction id from a real run of the example app on Tachi regtest.
+        Receipt statuses are fetched from the Tachi daemon <em>as you view this
+        page</em>. Rows without a transaction are labeled as recorded results,
+        because there is nothing on-chain to re-fetch for them.
       </p>
       <table>
         <thead>
-          <tr><th>Beat</th><th>What happened</th><th>Settlement</th><th>Live status</th></tr>
+          <tr><th>Beat</th><th>What happened</th><th>Settlement</th><th>Status</th></tr>
         </thead>
-        <tbody>
-          <tr>
-            <td><span class="pill lav">buy the answer</span></td>
-            <td>Agent → S2, <b>50 sats</b> for a model completion (agent-to-agent)</td>
-            <td class="mono"><a href="/receipt/8521123c00c62a9809d7c2693e718e5dc884c54f743304cc6cc41bcd0af8942f">8521123c00c62a98…0af8942f</a></td>
-            <td><span class="badge b-wait" data-tx="8521123c00c62a9809d7c2693e718e5dc884c54f743304cc6cc41bcd0af8942f">checking…</span></td>
-          </tr>
-          <tr>
-            <td><span class="pill lime">buy the fact</span></td>
-            <td>S2 → S1, <b>5 sats</b> for a live daemon read (agent-to-service)</td>
-            <td class="mono"><a href="/receipt/70515ef4f0729eb9bd0d78b92985f98e4b925c11e94deac8434a6334223a7a58">70515ef4f0729eb9…34223a7a58</a></td>
-            <td><span class="badge b-wait" data-tx="70515ef4f0729eb9bd0d78b92985f98e4b925c11e94deac8434a6334223a7a58">checking…</span></td>
-          </tr>
-          <tr>
-            <td><span class="pill peach">burst</span></td>
-            <td>20/20 paid calls to S1 · p50 <b>5,476 ms</b> · p95 <b>19,737 ms</b></td>
-            <td class="mono">20 settlements, each re-fetchable</td>
-            <td><span class="badge b-ok">20/20 served</span></td>
-          </tr>
-          <tr>
-            <td><span class="pill lav">failure: wrong amount</span></td>
-            <td>A signed payment for 49 sats against a 50-sat challenge</td>
-            <td class="mono">rejected: invalid_payment_requirements</td>
-            <td><span class="badge b-bad">no second charge</span></td>
-          </tr>
-          <tr>
-            <td><span class="pill lime">failure: over budget</span></td>
-            <td>A call that would break the agent's session budget</td>
-            <td class="mono">refused locally by the agent</td>
-            <td><span class="badge b-ok">no transaction made</span></td>
-          </tr>
+        <tbody id="run-rows">
+          <tr><td colspan="4">loading run evidence…</td></tr>
         </tbody>
       </table>
-      <div class="note">
+      <div class="note" id="run-note">
         Honest scope: this run is on Tachi <b>regtest</b> (<code>tachi-regtest-1</code>),
         the network whose write path is open today. Signet is the same code with a
         different base URL and network name. The demo keys are public test fixtures
@@ -303,28 +277,89 @@
   </div>
 
 <script>
+  // Escape untrusted strings before any HTML interpolation.
+  const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  }[c]));
+
   // Live verification of the run receipts: current daemon state, not pasted text.
-  (async () => {
-    for (const el of document.querySelectorAll('[data-tx]')) {
-      try {
-        const res = await fetch('/receipt/' + el.dataset.tx);
-        const rec = await res.json();
-        if (rec.found) {
-          el.className = 'badge b-ok';
-          el.textContent = rec.state + ' · epoch ' + (rec.epoch ?? 'n/a');
-        } else {
-          el.className = 'badge b-bad';
-          el.textContent = 'not found';
-        }
-      } catch {
-        el.className = 'badge b-wait';
-        el.textContent = 'lookup unavailable';
+  async function liveBadge(el, tx) {
+    try {
+      const res = await fetch('/receipt/' + tx);
+      const rec = await res.json();
+      if (rec.found) {
+        el.className = 'badge b-ok';
+        el.textContent = rec.state + ' · epoch ' + (rec.epoch ?? 'n/a');
+      } else {
+        el.className = 'badge b-bad';
+        el.textContent = 'not found';
       }
+    } catch {
+      el.className = 'badge b-wait';
+      el.textContent = 'lookup unavailable';
+    }
+  }
+
+  (async () => {
+    try {
+      const ev = await (await fetch('/run-evidence.json')).json();
+      const rows = [];
+      for (const r of ev.receipts) {
+        rows.push(
+          '<tr><td><span class="pill lav">' + esc(r.what) + '</span></td>' +
+          '<td>' + esc(r.description) + ', <b>' + esc(r.amountSats) + ' sats</b></td>' +
+          '<td class="mono"><a href="/receipt/' + r.tx + '">' + r.tx.slice(0, 14) + '…' + r.tx.slice(-8) + '</a></td>' +
+          '<td><span class="badge b-wait" data-tx="' + r.tx + '">checking…</span></td></tr>'
+        );
+      }
+      const b = ev.burst;
+      const txLinks = b.txids.map((t, i) =>
+        '<a href="/receipt/' + t + '">' + (i + 1) + '</a>'
+      ).join(' · ');
+      rows.push(
+        '<tr><td><span class="pill peach">burst</span></td>' +
+        '<td>' + b.count + '/' + b.count + ' paid calls · p50 <b>' + b.p50_ms +
+        ' ms</b> · p95 <b>' + b.p95_ms + ' ms</b> · max ' + b.max_ms + ' ms</td>' +
+        '<td class="mono">' + b.txids.length + ' settlements: ' + txLinks + '</td>' +
+        '<td>' + b.txids.slice(0, 3).map((t) =>
+          '<span class="badge b-wait" data-tx="' + t + '" style="margin:1px">checking…</span>'
+        ).join('') + '<div style="color:var(--muted);font-size:11px;margin-top:3px">3 of ' + b.txids.length + ' checked live; all are linked</div></td></tr>'
+      );
+      for (const f of ev.failures) {
+        rows.push(
+          '<tr><td><span class="pill ' + (f.what === 'wrong amount' ? 'lav' : 'lime') + '">failure: ' + esc(f.what) + '</span></td>' +
+          '<td>' + esc(f.description) + '</td>' +
+          '<td class="mono">' + esc(f.result) + '</td>' +
+          '<td><span class="badge b-wait">recorded result: ' +
+          (f.second_charge === false ? 'no second charge' : 'no transaction made') +
+          '</span></td></tr>'
+        );
+      }
+      document.getElementById('run-rows').innerHTML = rows.join('');
+      document.getElementById('run-note').innerHTML =
+        'Run recorded at <b>' + esc(ev.run_at) + '</b> on <b>' + esc(ev.network) +
+        '</b> (model: ' + esc(ev.model) + '). Every number on this page comes from ' +
+        '<code>apps/site/run-evidence.json</code> in the repository. Honest scope: ' +
+        'Tachi <b>regtest</b>, the network whose write path is open today; signet is ' +
+        'the same code with a different base URL and network name. The demo keys are ' +
+        'public test fixtures configured by environment variables.';
+      for (const el of document.querySelectorAll('[data-tx]')) {
+        liveBadge(el, el.dataset.tx);
+      }
+    } catch (err) {
+      document.getElementById('run-rows').innerHTML =
+        '<tr><td colspan="4">run evidence unavailable: ' + esc(err) + '</td></tr>';
     }
   })();
+
   document.getElementById('go').addEventListener('click', () => {
     const tx = document.getElementById('tx').value.trim().toLowerCase();
-    if (/^[0-9a-f]{64}$/.test(tx)) location.href = '/receipts?tx=' + tx;
+    if (/^[0-9a-f]{64}$/.test(tx)) {
+      location.href = '/receipts?tx=' + tx;
+    } else {
+      document.getElementById('tx').style.borderColor = 'var(--bad)';
+      document.getElementById('tx').placeholder = 'a transaction id is 64 hex characters';
+    }
   });
   document.getElementById('tx').addEventListener('keydown', (e) => {
     if (e.key === 'Enter') document.getElementById('go').click();
