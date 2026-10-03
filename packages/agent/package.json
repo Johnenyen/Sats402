@@ -1,0 +1,29 @@
+{
+  "name": "@sats402/agent",
+  "version": "0.1.0",
+  "description": "Sats402 agent SDK: pay-per-request in native sats on Tachi. Settlement is a tachi_tx the agent signs and broadcasts itself.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": ["dist", "README.md"],
+  "license": "MIT",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test:live": "node --test test/live-settle.test.mjs"
+  },
+  "dependencies": {
+    "@sats402/core": "file:../core",
+    "@tachibtc/taurus-vault-core": "^0.3.5",
+    "@tachibtc/taurus-wallet-aggregator": "^0.4.5"
+  },
+  "devDependencies": {
+    "typescript": "^7.0.2",
+    "@types/node": "^25.0.0"
+  }
+}
