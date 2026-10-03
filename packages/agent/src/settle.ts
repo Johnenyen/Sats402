@@ -41,6 +41,26 @@ export interface SettlementResult {
   inputs: string[];
 }
 
+/**
+ * Sats currently spendable by an identity (sum of unspent, unlocked VTXOs).
+ * Read-only. Useful for spend policies and demo setup.
+ */
+export async function getSpendableSats(identity: Identity, daemonUrl: string): Promise<bigint> {
+  const base = daemonUrl.replace(/\/$/, '');
+  const u = new URL(base);
+  const allowInsecureHttp =
+    u.protocol === 'http:' &&
+    (u.hostname === 'localhost' || u.hostname === '127.0.0.1' || u.hostname === '::1');
+  const res = await getAddressVtxos(identity.xOnly, {
+    baseUrl: base,
+    allowInsecureHttp,
+    fetchImpl: fetch,
+  });
+  return (res.vtxos ?? [])
+    .filter((v) => !v.spent && !v.locked)
+    .reduce((sum, v) => sum + v.amountSats, 0n);
+}
+
 export async function settleTransfer(args: SettleArgs): Promise<SettlementResult> {
   const feeSats = args.feeSats ?? 1n;
   const base = args.daemonUrl.replace(/\/$/, '');

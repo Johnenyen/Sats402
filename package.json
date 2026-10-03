@@ -1,0 +1,9 @@
+{
+  "name": "sats402",
+  "private": true,
+  "description": "Sats402: SDK and protocol for x402 pay-per-request payments in native sats on Tachi. Example app: one command.",
+  "license": "MIT",
+  "scripts": {
+    "cold-start": "node demo/cold-start.mjs"
+  }
+}
