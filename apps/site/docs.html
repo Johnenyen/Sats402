@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Docs · Sats402</title>
+  <meta name="description" content="Sats402 protocol: x402 pay-per-request payments in native sats on Tachi. Wire format, settlement, replay protection, verifier." />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/assets/style.css" />
+</head>
+<body>
+  <nav class="nav">
+    <a class="brand" href="/">Sats402<span class="dot-accent">.</span></a>
+    <div class="links">
+      <a href="/">Home</a>
+      <a href="/services">Services</a>
+      <a href="/demo">Demo</a>
+      <a href="/verify">Verify</a>
+      <a href="/docs" class="active">Docs</a>
+      <a class="btn-nav" href="https://github.com/Johnenyen/Sats402" target="_blank" rel="noopener">GitHub</a>
+    </div>
+  </nav>
+
+  <div class="wrap">
+    <div class="frame">
+      <span class="eyebrow"><span class="dot"></span> Protocol documentation</span>
+      <h1>How Sats402 works<span class="grad">, end to end.</span></h1>
+      <p class="lede">
+        Sats402 implements the x402 pay-per-request pattern with settlement in
+        native sats on Tachi. This page is the protocol. The normative network
+        binding lives in
+        <a href="https://github.com/Johnenyen/Sats402/blob/main/specs/schemes/exact/scheme_exact_tachi.md" target="_blank" rel="noopener">specs/schemes/exact/scheme_exact_tachi.md</a>.
+      </p>
+
+      <h2 class="section-sub">The flow</h2>
+      <div class="steps">
+        <div class="step"><span class="pill">1 · Ask</span>The agent requests a resource. No payment yet.</div>
+        <div class="step"><span class="pill">2 · 402</span>The service refuses and sends a challenge: price in sats, payee key, network, validity window.</div>
+        <div class="step"><span class="pill">3 · Pay</span>The agent signs and broadcasts its own <code>tachi_tx</code>, paying the exact amount to the payee's owner key. The sats move on-chain.</div>
+        <div class="step"><span class="pill">4 · Prove</span>The agent retries with the settlement proof. The service re-fetches the transaction from the daemon, sees committed funds, and serves the resource.</div>
+      </div>
+      <div class="note">
+        The service holds no key and moves no funds. Every settlement is a tx id
+        on Tachi: daemon-returned and re-fetchable by anyone.
+      </div>
+
+      <h2 class="section-sub">Wire format</h2>
+      <p class="p">Three x402 v2 headers, nothing more:</p>
+      <table>
+        <tbody>
+          <tr><td><code>PAYMENT-REQUIRED</code></td><td>On the <b>402</b> response. Carries the challenge: price in sats, payee, network, validity window. Base64 JSON.</td></tr>
+          <tr><td><code>PAYMENT-SIGNATURE</code></td><td>On the paid retry. Carries the payment payload: signature, authorization, and the settlement proof. Base64 JSON.</td></tr>
+          <tr><td><code>PAYMENT-RESPONSE</code></td><td>On the successful <b>200</b>. Carries the settlement response for the client's records.</td></tr>
+        </tbody>
+      </table>
+
+      <h2 class="section-sub">Payment scheme</h2>
+      <p class="p">
+        Sats402 uses the <code>exact</code> scheme with a Tachi network binding,
+        written from the x402 scheme template the same way the standard's
+        <code>scheme_exact_lnbtc.md</code> binds <code>exact</code> to Bitcoin
+        Lightning.
+      </p>
+      <table>
+        <tbody>
+          <tr><td>Network identifiers</td><td>CAIP-2-style in the <code>tachi</code> namespace, reference taken from the underlying Bitcoin network's genesis prefix (BIP-122 convention). Example: <code>tachi:0f9188f13cb7b2c71f2a335e3a4fc328</code> (tachi-regtest-1). The namespace is a proposal declared by this binding.</td></tr>
+          <tr><td>Amounts</td><td>Sat strings. Atomic units. Exact match required: no rounding, no fees added, no tolerance.</td></tr>
+          <tr><td>Payee</td><td>The payee's x-only owner key on the Tachi ledger. The same key owns the received output.</td></tr>
+          <tr><td>Binding</td><td>The payer's signature covers the complete challenge: network, amount, payee, resource, nonce, and validity window. A payment made for one request cannot be presented for another. Resource URLs are normalized on both sides before binding.</td></tr>
+        </tbody>
+      </table>
+
+      <h2 class="section-sub">Settlement</h2>
+      <p class="p">
+        The <b>client</b> settles: it signs and broadcasts its own <code>tachi_tx</code>,
+        paying the exact requested amount to the payee's owner key. The
+        <b>service</b> verifies by reading the daemon: the transaction exists, is
+        committed, and the amount and payee match the challenge. The key that
+        owns the spent sats is the key that signed. Verification needs no keys
+        and no wallet.
+      </p>
+
+      <h2 class="section-sub">Replay protection</h2>
+      <p class="p">
+        Each settlement is consumed once, keyed by <code>network + ":" + tx_hash</code>
+        in a restart-durable store (<code>FileReplayStore</code> appends to disk;
+        the in-memory store is for tests and single runs). A settlement is never
+        charged twice: a retry with the same proof returns the original response
+        while the server still holds it (marked <code>X-Sats402-Replayed: 1</code>),
+        and is rejected otherwise.
+      </p>
+
+      <h2 class="section-sub">Verifying a settlement</h2>
+      <p class="p">Three ways, all read-only, none needing keys:</p>
+      <div class="steps">
+        <div class="step"><span class="pill">Web</span>Paste the tx id on the <a href="/verify">verify page</a>, or open <code>GET /receipt/&lt;txid&gt;</code> for JSON.</div>
+        <div class="step"><span class="pill">CLI</span><code>npx sats402 verify &lt;txid&gt; [--payee &lt;key&gt;] [--amount &lt;sats&gt;]</code></div>
+        <div class="step"><span class="pill">Library</span><code>@sats402/core/verify</code> — a keyless subpath: key material is excluded by construction, safe for verifiers and paywalls.</div>
+      </div>
+
+      <h2 class="section-sub">Errors</h2>
+      <table>
+        <tbody>
+          <tr><td><code>402 invalid_payment_requirements</code></td><td>Wrong amount, wrong payee, or wrong network. Nothing is served.</td></tr>
+          <tr><td><code>402 invalid_payment_payload</code></td><td>The payment is not bound to this request (URL, nonce, or resource mismatch).</td></tr>
+          <tr><td><code>402 invalid_signature</code></td><td>The signature does not verify against the payer's key.</td></tr>
+          <tr><td><code>402 replay_detected</code></td><td>This settlement was already consumed.</td></tr>
+          <tr><td><code>500 verification_unavailable</code></td><td>The daemon could not be read. Transient: retry. No settlement is consumed.</td></tr>
+        </tbody>
+      </table>
+
+      <h2 class="section-sub">Quickstart</h2>
+      <p class="p"><b>A paid endpoint</b> (Node, any framework via the middleware):</p>
+      <pre><code>import { paywall, FileReplayStore } from '@sats402/express';
+
+export default paywall({
+  priceSats: 5n,
+  payeeXOnly: process.env.PAYEE_XONLY,
+  publicBaseUrl: 'https://sats402.vercel.app',
+  replay: new FileReplayStore('/var/lib/sats402/replay.jsonl'),
+  serve: (req, res) =&gt; res.end(JSON.stringify({ hello: 'paid' })),
+});</code></pre>
+      <p class="p"><b>An agent that pays</b>:</p>
+      <pre><code>import { Sats402Agent } from '@sats402/agent';
+import { deriveIdentity } from '@sats402/core';
+
+const agent = new Sats402Agent({
+  identity: deriveIdentity(MNEMONIC, 'regtest', 0),
+  policy: { perCallCapSats: 60n, sessionBudgetSats: 400n },
+});
+const res = await agent.fetch('https://sats402.vercel.app/api/services/price');
+// 402 handled, tachi_tx settled, proof retried. Product in res.</code></pre>
+      <div class="note">
+        Runnable examples: <code>npm run demo:pay -- inference</code> (the agent
+        on your machine) and <code>npm run cold-start</code> (the full recorded
+        loop). Source: <a href="https://github.com/Johnenyen/Sats402" target="_blank" rel="noopener">github.com/Johnenyen/Sats402</a>.
+      </div>
+    </div>
+
+    <p class="foot">
+      Sats402 — SDK and protocol for x402 pay-per-request payments in native sats on Tachi.<br />
+      Every settlement is a tx id on Tachi: daemon-returned and re-fetchable.
+    </p>
+  </div>
+</body>
+</html>

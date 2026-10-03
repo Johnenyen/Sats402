@@ -24,7 +24,7 @@ function renderBrief(data) {
 <link rel="stylesheet" href="/assets/style.css" /></head><body>
 <nav class="nav"><a class="brand" href="/">Sats402<span class="dot-accent">.</span></a>
 <div class="links"><a href="/">Home</a><a href="/services">Services</a><a href="/demo">Demo</a><a href="/verify">Verify</a>
-<a href="https://github.com/Johnenyen/Sats402/blob/main/PROTOCOL.md" target="_blank" rel="noopener">Docs</a>
+<a href="/docs">Docs</a>
 <a class="btn-nav" href="https://github.com/Johnenyen/Sats402" target="_blank" rel="noopener">GitHub</a></div></nav>
 <div class="wrap"><div class="frame">
 <span class="eyebrow"><span class="dot"></span> Protected page example</span>
