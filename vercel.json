@@ -1,0 +1,8 @@
+{
+  "buildCommand": "npm run build && mkdir -p public && cp apps/receipts/page.html public/index.html",
+  "outputDirectory": "public",
+  "framework": null,
+  "rewrites": [
+    { "source": "/receipt/:txid", "destination": "/api/receipt/:txid" }
+  ]
+}
