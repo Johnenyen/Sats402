@@ -136,6 +136,12 @@
   }
   $('go').addEventListener('click', lookUp);
   $('txid').addEventListener('keydown', (e) => { if (e.key === 'Enter') lookUp(); });
+  // Deep link: /receipts?tx=<txid> fills and verifies immediately.
+  const preset = new URLSearchParams(location.search).get('tx');
+  if (preset) {
+    $('txid').value = preset.trim().toLowerCase();
+    lookUp();
+  }
 </script>
 </body>
 </html>
