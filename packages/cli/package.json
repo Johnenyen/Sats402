@@ -1,0 +1,14 @@
+{
+  "name": "sats402",
+  "version": "0.1.0",
+  "description": "Sats402 CLI: verify x402 settlements on Tachi. Read-only: the record is daemon-returned and re-fetchable.",
+  "type": "module",
+  "bin": {
+    "sats402": "./bin/sats402.mjs"
+  },
+  "files": ["bin", "README.md"],
+  "license": "MIT",
+  "dependencies": {
+    "@sats402/verify": "file:../verify"
+  }
+}

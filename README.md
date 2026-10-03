@@ -42,8 +42,37 @@ services settle in native sats on Tachi, without bridges, wrapped assets, or
 custodians. Built for high-velocity, verifiable, sovereign micropayments suitable
 for AI agents and decentralized AI networks.
 
+## Example app
+
+One command runs the whole loop, live:
+
+```
+npm run cold-start
+```
+
+An agent asks a question and pays for the answer in native sats on Tachi. The
+service cannot answer until it has paid for the live daemon data the answer
+needs: two purchases, one run, receipts for both. Then a burst of twenty paid
+calls with measured latency, and two clean failures (a wrong-amount payment
+rejected with no second charge, an over-budget call refused locally with no
+transaction).
+
+The two paid services are plain HTTP servers behind the same paywall:
+S1 sells live daemon data (5 sats per call), S2 sells a completion (50 sats per
+call) and is itself an agent with its own key, spending policy, and payments.
+
+## Verify a settlement
+
+Anyone can verify a settlement with one command. It is read-only: no keys, no
+wallet, no signing. The record is daemon-returned and re-fetchable.
+
+```
+npx sats402 verify <txid>
+```
+
+Or paste a tx id on the receipt page (`GET /` on the receipt server), which
+also exposes the same record as JSON at `GET /receipt/:txid`.
+
 ## Status
 
-In development. The example app, the demo command, and full documentation land
-with the first working release. Built for the Tachi hackathon bounty "x402 on
-Bitcoin".
+In development. Built for the Tachi hackathon bounty "x402 on Bitcoin".
