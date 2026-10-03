@@ -13,7 +13,7 @@ import { readJson } from '../_lib/readjson.mjs';
 import { withCors } from '../_lib/services.mjs';
 
 const DAEMON = process.env.SATS402_DAEMON ?? 'https://rpc-regtest.tachibtc.com';
-const SELF = process.env.SATS402_PUBLIC_URL ?? 'https://sats402-receipts.vercel.app';
+const SELF = process.env.SATS402_PUBLIC_URL ?? 'https://sats402.vercel.app';
 const DATA_URL = process.env.SATS402_DATA_URL ?? `${SELF}/api/services/network`;
 const XKIRO_URL =
   process.env.SATS402_XKIRO_URL ?? 'https://api.xkiro.com/v1/chat/completions';

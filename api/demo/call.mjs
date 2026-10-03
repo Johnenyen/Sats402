@@ -14,7 +14,7 @@ import { readJson } from '../_lib/readjson.mjs';
 
 const DAEMON = process.env.SATS402_DAEMON ?? 'https://rpc-regtest.tachibtc.com';
 // Fixed outbound origin: never built from the request Host header.
-const SELF = process.env.SATS402_PUBLIC_URL ?? 'https://sats402-receipts.vercel.app';
+const SELF = process.env.SATS402_PUBLIC_URL ?? 'https://sats402.vercel.app';
 const AGENT_MNEMONIC =
   process.env.SATS402_AGENT_MNEMONIC ??
   'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about';

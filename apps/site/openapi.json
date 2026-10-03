@@ -7,7 +7,7 @@
     "license": { "name": "MIT" }
   },
   "servers": [
-    { "url": "https://sats402-receipts.vercel.app", "description": "Tachi regtest demo deployment" }
+    { "url": "https://sats402.vercel.app", "description": "Tachi regtest demo deployment" }
   ],
   "paths": {
     "/api/services/price": {

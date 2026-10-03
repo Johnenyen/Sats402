@@ -10,6 +10,7 @@
     "test": "npm test --workspaces --if-present",
     "test:live": "npm run test:live --workspaces --if-present",
     "cold-start": "node demo/cold-start.mjs",
+    "demo:pay": "node demo/pay.mjs",
     
     "verify": "node packages/cli/bin/sats402.mjs verify"
   }

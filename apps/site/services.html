@@ -51,7 +51,7 @@
       The number agents check most: live BTC price in USD with 24-hour change.
       Upstream is the CoinGecko public API, read at request time.
     </p>
-    <pre>GET https://sats402-receipts.vercel.app/api/services/price
+    <pre>GET https://sats402.vercel.app/api/services/price
 → 402  PAYMENT-REQUIRED: challenge (5 sats, network tachi:0f9188…, payTo …)
 → 200  { "asset": "bitcoin", "usd": 84736, "usd_24h_change_pct": -1.46, "source": "CoinGecko public API" }</pre>
     <div class="cta">
@@ -70,7 +70,7 @@
       Upstream is the mempool.space public API. This is the data an agent needs
       before it moves money.
     </p>
-    <pre>GET https://sats402-receipts.vercel.app/api/services/fees
+    <pre>GET https://sats402.vercel.app/api/services/fees
 → 402  PAYMENT-REQUIRED: challenge (5 sats)
 → 200  { "unit": "sat/vB", "fastest": 5, "half_hour": 4, "hour": 3, "economy": 2, "minimum": 1, "source": "mempool.space public API" }</pre>
     <div class="cta">
@@ -89,7 +89,7 @@
       epoch height, network. Read live from the Tachi daemon with no cache. An
       agent settles on Tachi, so this is the fee data that actually applies.
     </p>
-    <pre>GET https://sats402-receipts.vercel.app/api/services/network
+    <pre>GET https://sats402.vercel.app/api/services/network
 → 402  PAYMENT-REQUIRED: challenge (5 sats)
 → 200  { "ledger_fee_sat": {"recommended_fee_sat": 1}, "epoch_height": "967207", "network": "tachi-regtest-1" }</pre>
     <div class="cta">
@@ -109,7 +109,7 @@
       until it has paid the network data service for the facts the answer needs.
       One request, two purchase types.
     </p>
-    <pre>POST https://sats402-receipts.vercel.app/api/services/inference
+    <pre>POST https://sats402.vercel.app/api/services/inference
      { "question": "What is the recommended fee right now?" }
 → 402  PAYMENT-REQUIRED: challenge (50 sats)
 → 200  { "answer": "…", "paid_data": { … live data it bought … },
