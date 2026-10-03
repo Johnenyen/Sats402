@@ -1,0 +1,154 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Sats402 services",
+    "version": "0.1.0",
+    "description": "Live services agents buy with sats per call over the x402 pay-per-request pattern. No accounts, no API keys: call the endpoint, pay the 402 challenge with a Tachi transaction, retry with the payment proof.",
+    "license": { "name": "MIT" }
+  },
+  "servers": [
+    { "url": "https://sats402-receipts.vercel.app", "description": "Tachi regtest demo deployment" }
+  ],
+  "paths": {
+    "/api/services/price": {
+      "get": {
+        "summary": "BTC market price feed",
+        "description": "Live BTC price in USD with 24h change (CoinGecko). 5 sats per call.",
+        "operationId": "getBtcPrice",
+        "x-sats402": { "priceSats": 5, "scheme": "exact", "network": "tachi:0f9188f13cb7b2c71f2a335e3a4fc328" },
+        "responses": {
+          "200": {
+            "description": "The paid product",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PriceFeed" } } }
+          },
+          "402": {
+            "description": "Payment required. PAYMENT-REQUIRED header carries the x402 challenge; retry with PAYMENT-SIGNATURE after settling a Tachi transaction.",
+            "headers": {
+              "PAYMENT-REQUIRED": { "description": "Base64 JSON PaymentRequired (x402 v2)", "schema": { "type": "string" } }
+            }
+          }
+        }
+      }
+    },
+    "/api/services/fees": {
+      "get": {
+        "summary": "Bitcoin fee estimates",
+        "description": "Live next-block fee ladder in sat/vB (mempool.space). 5 sats per call.",
+        "operationId": "getFeeEstimates",
+        "x-sats402": { "priceSats": 5, "scheme": "exact", "network": "tachi:0f9188f13cb7b2c71f2a335e3a4fc328" },
+        "responses": {
+          "200": {
+            "description": "The paid product",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/FeeEstimates" } } }
+          },
+          "402": { "description": "Payment required", "headers": { "PAYMENT-REQUIRED": { "schema": { "type": "string" } } } }
+        }
+      }
+    },
+    "/api/services/network": {
+      "get": {
+        "summary": "Tachi network state",
+        "description": "Live settlement-layer state: ledger fee, epoch height, network (Tachi daemon). 5 sats per call.",
+        "operationId": "getTachiNetworkState",
+        "x-sats402": { "priceSats": 5, "scheme": "exact", "network": "tachi:0f9188f13cb7b2c71f2a335e3a4fc328" },
+        "responses": {
+          "200": {
+            "description": "The paid product",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/NetworkState" } } }
+          },
+          "402": { "description": "Payment required", "headers": { "PAYMENT-REQUIRED": { "schema": { "type": "string" } } } }
+        }
+      }
+    },
+    "/api/services/inference": {
+      "post": {
+        "summary": "Grounded AI completion",
+        "description": "A model call grounded in live data this service buys itself first (a second, nested payment). 50 sats per call.",
+        "operationId": "postInference",
+        "x-sats402": { "priceSats": 50, "scheme": "exact", "network": "tachi:0f9188f13cb7b2c71f2a335e3a4fc328" },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": { "question": { "type": "string" } },
+                "required": ["question"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The paid product",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Inference" } } }
+          },
+          "402": { "description": "Payment required", "headers": { "PAYMENT-REQUIRED": { "schema": { "type": "string" } } } }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "PriceFeed": {
+        "type": "object",
+        "properties": {
+          "asset": { "type": "string" },
+          "usd": { "type": "number" },
+          "usd_24h_change_pct": { "type": "number" },
+          "source": { "type": "string" },
+          "read_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "FeeEstimates": {
+        "type": "object",
+        "properties": {
+          "unit": { "type": "string" },
+          "fastest": { "type": "integer" },
+          "half_hour": { "type": "integer" },
+          "hour": { "type": "integer" },
+          "economy": { "type": "integer" },
+          "minimum": { "type": "integer" },
+          "source": { "type": "string" },
+          "read_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "NetworkState": {
+        "type": "object",
+        "properties": {
+          "ledger_fee_sat": { "type": "object" },
+          "epoch_height": { "type": ["string", "null"] },
+          "network": { "type": ["string", "null"] },
+          "source": { "type": "string" },
+          "read_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "Inference": {
+        "type": "object",
+        "properties": {
+          "answer": { "type": "string" },
+          "model": { "type": "string" },
+          "paid_data": { "type": "object" },
+          "data_purchase": {
+            "type": "object",
+            "properties": {
+              "what": { "type": "string" },
+              "amountSats": { "type": "string" },
+              "tx": { "type": "string" }
+            }
+          }
+        }
+      }
+    }
+  },
+  "x-sats402-protocol": {
+    "headers": {
+      "challenge": "PAYMENT-REQUIRED",
+      "proof": "PAYMENT-SIGNATURE",
+      "receipt": "PAYMENT-RESPONSE"
+    },
+    "settlement": "Tachi transaction (tachi_tx), signed and broadcast by the paying agent",
+    "verify": "GET /receipt/:txid (read-only, daemon-returned) or npx sats402 verify <txid>",
+    "spec": "https://github.com/Johnenyen/Sats402/blob/main/specs/schemes/exact/scheme_exact_tachi.md"
+  }
+}

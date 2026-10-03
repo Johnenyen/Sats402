@@ -1,5 +1,5 @@
 {
-  "buildCommand": "npm run build && rm -rf public && mkdir -p public/assets && cp apps/site/home.html public/index.html && cp apps/site/services.html apps/site/demo.html apps/site/verify.html public/ && cp apps/site/assets/style.css public/assets/style.css && cp apps/site/run-evidence.json public/run-evidence.json",
+  "buildCommand": "npm run build && rm -rf public && mkdir -p public/assets && cp apps/site/home.html public/index.html && cp apps/site/services.html apps/site/demo.html apps/site/verify.html public/ && cp apps/site/assets/style.css public/assets/style.css && cp apps/site/run-evidence.json apps/site/openapi.json apps/site/services.json public/",
   "outputDirectory": "public",
   "framework": null,
   "functions": {
