@@ -3,9 +3,7 @@
 // GET /api/services/price
 //   402 + PAYMENT-REQUIRED (5 sats) until paid; then live BTC price data.
 //
-// Upstream: CoinGecko public API (no key). Cached 30s to be a good citizen.
-import { paywall, FileReplayStore } from '@sats402/express';
-import { deriveIdentity, NETWORK_TACHI_REGTEST } from '@sats402/core';
+// Upstream: CoinGecko public API (no key). Read at request time.
 import { dataFeedPaywall } from '../_lib/services.mjs';
 
 const handle = dataFeedPaywall({

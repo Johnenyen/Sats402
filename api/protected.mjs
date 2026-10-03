@@ -46,6 +46,7 @@ export default dataFeedPaywall({
   service: 'Protected market brief page',
   description: 'A rendered HTML page of live Bitcoin market data, pay-per-view',
   priceSats: 5n,
+  mimeType: 'text/html',
   mnemonicEnv: 'SATS402_DATA_MNEMONIC',
   defaultMnemonic:
     'legal winner thank year wave sausage worth useful legal winner thank yellow',

@@ -9,6 +9,7 @@ import {
   HEADER_PAYMENT_REQUIRED,
   HEADER_PAYMENT_SIGNATURE,
   formPayment,
+  normalizeResourceUrl,
   tachiNetworkName,
   userAddressForXOnly,
   type Identity,
@@ -113,7 +114,7 @@ export class Sats402Agent {
     // The sats have moved on-chain regardless of what the server answers.
     this.spentSats += amount + fee;
 
-    const resource: ResourceInfo = { url };
+    const resource: ResourceInfo = { url: normalizeResourceUrl(url) };
     const payload: PaymentPayload = formPayment({
       accepted,
       resource,

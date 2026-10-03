@@ -6,11 +6,10 @@
 // its own spending policy, settles with its own key (a real tachi_tx), retries
 // with the payment proof, and reports the whole exchange. The sats are real.
 //
-// Guarded: per-IP rate limit (the wallet is real and finite), fixed outbound
-// origin (no Host-header SSRF), and an automatic small top-up of the S2 key
-// from the agent key when S2 runs low (reported in the response as setup).
-import { Sats402Agent, settleTransfer, getSpendableSats, PolicyError } from '@sats402/agent';
-import { deriveIdentity, NETWORK_TACHI_REGTEST, userAddressForXOnly } from '@sats402/core';
+// Guarded: per-IP rate limit (the wallet is real and finite) and a fixed
+// outbound origin (no Host-header SSRF).
+import { Sats402Agent, getSpendableSats, PolicyError } from '@sats402/agent';
+import { deriveIdentity, NETWORK_TACHI_REGTEST } from '@sats402/core';
 import { readJson } from '../_lib/readjson.mjs';
 
 const DAEMON = process.env.SATS402_DAEMON ?? 'https://rpc-regtest.tachibtc.com';
@@ -86,25 +85,6 @@ export default async function handler(req, res) {
   const inferenceService = deriveIdentity(INFERENCE_MNEMONIC, 'regtest', 0);
   const url = selected.url;
 
-  // Keep the demo self-healing: if the inference wallet is low, the agent tops
-  // it up so that service can keep buying data. Infrastructure, reported as such.
-  let setupTopup = null;
-  const inferenceBalance = await getSpendableSats(inferenceService, DAEMON);
-  if (target === 'inference' && inferenceBalance < 20n) {
-    const tx = await settleTransfer({
-      identity,
-      recipientAddress: userAddressForXOnly(inferenceService.xOnly),
-      amountSats: 100n,
-      feeSats: 1n,
-      daemonUrl: DAEMON,
-    });
-    setupTopup = {
-      what: 'top up the inference service wallet so it can buy data',
-      amountSats: '100',
-      tx: tx.txHash,
-    };
-  }
-
   const agent = new Sats402Agent({
     identity,
     daemonUrl: DAEMON,
@@ -171,7 +151,6 @@ export default async function handler(req, res) {
           response_status: paid.status,
           served,
           elapsed_ms: elapsedMs,
-          setup_topup: setupTopup,
           wallet: {
             agent_balance_sats: String(await getSpendableSats(identity, DAEMON)),
             agent_spent_this_call_sats: String(agent.spentSats),

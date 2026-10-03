@@ -8,7 +8,7 @@
  * and greppably so.
  */
 export * from './types.js';
-export { buildBoundMessage } from './binding.js';
+export { buildBoundMessage, normalizeResourceUrl } from './binding.js';
 export {
   SettlementLookupError,
   fetchSettlement,

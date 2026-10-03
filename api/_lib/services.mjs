@@ -60,7 +60,7 @@ export function dataFeedPaywall(opts) {
       maxTimeoutSeconds: 120,
       resource: {
         description: `${opts.description} (${opts.service})`,
-        mimeType: 'application/json',
+        mimeType: opts.mimeType ?? 'application/json',
       },
       serve: async (req, res) => {
         const product = await opts.fetchProduct();

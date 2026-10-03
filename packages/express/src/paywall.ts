@@ -12,6 +12,7 @@ import {
   HEADER_PAYMENT_SIGNATURE,
   SettlementLookupError,
   fetchSettlement,
+  normalizeResourceUrl,
   replayKey,
   verifyPayment,
   verifySettlement,
@@ -143,16 +144,20 @@ function sameRequirement(a: PaymentRequirements, b: PaymentRequirements): boolea
  * configured this is exact. Without it, the scheme comes from the proxy's
  * `x-forwarded-proto` (or the socket) and the host from the request, which is
  * fine for development but is host-header dependent.
+ *
+ * Normalization matters: an agent and a service behind a proxy must agree on
+ * the same string even when the host differs in case, default ports, or a
+ * trailing slash. Both sides normalize via core's normalizeResourceUrl.
  */
 function requestUrl(req: IncomingMessage, opts: PaywallOptions): string {
   const path = req.url ?? '/';
-  if (opts.publicBaseUrl) return `${opts.publicBaseUrl.replace(/\/$/, '')}${path}`;
+  if (opts.publicBaseUrl) return normalizeResourceUrl(`${opts.publicBaseUrl.replace(/\/$/, '')}${path}`);
   const forwarded = req.headers['x-forwarded-proto'];
   const proto =
     (Array.isArray(forwarded) ? forwarded[0] : forwarded)?.split(',')[0]?.trim() ||
     ((req.socket as { encrypted?: boolean }).encrypted ? 'https' : 'http');
   const host = req.headers.host ?? 'localhost';
-  return `${proto}://${host}${path}`;
+  return normalizeResourceUrl(`${proto}://${host}${path}`);
 }
 
 function sendChallenge(
@@ -236,7 +241,23 @@ function recording(res: ServerResponse): { res: ServerResponse; capture: () => C
 export function paywall(opts: PaywallOptions) {
   const replay = opts.replay ?? new MemoryReplayStore();
   const inFlight = new Set<string>();
-  const responses = new Map<string, CapturedResponse>();
+  // Bounded response cache for the paid-but-expired policy: max entries and a
+  // TTL so a long-running process cannot leak memory.
+  const RESPONSE_CACHE_MAX = 200;
+  const RESPONSE_TTL_MS = 10 * 60 * 1000;
+  const responses = new Map<string, { at: number; res: CapturedResponse }>();
+  const remember = (key: string, res: CapturedResponse) => {
+    const now = Date.now();
+    for (const [k, v] of responses) {
+      if (now - v.at > RESPONSE_TTL_MS) responses.delete(k);
+    }
+    while (responses.size >= RESPONSE_CACHE_MAX) {
+      const oldest = responses.keys().next().value;
+      if (oldest === undefined) break;
+      responses.delete(oldest);
+    }
+    responses.set(key, { at: now, res });
+  };
 
   return async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> {
     const payload = decodeHeader<PaymentPayload>(req, HEADER_PAYMENT_SIGNATURE);
@@ -261,13 +282,14 @@ export function paywall(opts: PaywallOptions) {
     // is still held, return it (paid-but-expired policy).
     if (key && replay.has(key)) {
       const cached = responses.get(key);
-      if (cached) {
-        res.statusCode = cached.status;
-        for (const [name, value] of Object.entries(cached.headers)) {
+      if (cached && Date.now() - cached.at <= RESPONSE_TTL_MS) {
+        const c = cached.res;
+        res.statusCode = c.status;
+        for (const [name, value] of Object.entries(c.headers)) {
           if (value !== undefined) res.setHeader(name, value as string | string[] | number);
         }
         res.setHeader('X-Sats402-Replayed', '1');
-        res.end(cached.body);
+        res.end(c.body);
         return;
       }
       sendRejected(res, opts, 'replay_detected', payer);
@@ -285,8 +307,15 @@ export function paywall(opts: PaywallOptions) {
       return;
     }
 
-    // 2. The payment must be bound to this exact request URL.
-    if ((payload.resource?.url ?? '') !== requestUrl(req, opts)) {
+    // 2. The payment must be bound to this exact request URL (normalized on
+    // both sides so proxy quirks cannot burn a payer's settled funds).
+    let normalized = '';
+    try {
+      normalized = normalizeResourceUrl(payload.resource?.url ?? '');
+    } catch {
+      normalized = '';
+    }
+    if (normalized !== requestUrl(req, opts)) {
       sendRejected(res, opts, 'invalid_payment_payload', payer);
       return;
     }
@@ -339,7 +368,7 @@ export function paywall(opts: PaywallOptions) {
       const { res: capturedRes, capture } = recording(res);
       capturedRes.setHeader(HEADER_PAYMENT_RESPONSE, b64(response));
       await opts.serve(req, capturedRes);
-      if (key) responses.set(key, capture());
+      if (key) remember(key, capture());
     } finally {
       if (key) inFlight.delete(key);
     }

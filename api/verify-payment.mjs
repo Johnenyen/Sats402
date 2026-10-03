@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 // POST /api/verify-payment — verify an x402 payment payload live, read-only.
 //
 // Body: { "payload": <PaymentPayload> }
