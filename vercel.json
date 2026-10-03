@@ -1,9 +1,10 @@
 {
-  "buildCommand": "npm run build && rm -rf public && mkdir -p public/assets && cp apps/site/home.html public/index.html && cp apps/site/services.html apps/site/demo.html apps/site/verify.html public/ && cp apps/site/assets/style.css public/assets/style.css && cp apps/site/run-evidence.json apps/site/openapi.json apps/site/services.json public/",
+  "buildCommand": "npm run build && rm -rf public && mkdir -p public/assets && cp apps/site/home.html public/index.html && cp apps/site/services.html apps/site/demo.html apps/site/verify.html public/ && cp apps/site/assets/style.css public/assets/style.css && cp apps/site/run-evidence.json apps/site/openapi.json apps/site/services.json apps/site/llms.txt public/",
   "outputDirectory": "public",
   "framework": null,
   "functions": {
     "api/demo/call.mjs": { "maxDuration": 60 },
+    "api/protected.mjs": { "maxDuration": 30 },
     "api/services/inference.mjs": { "maxDuration": 60 },
     "api/services/price.mjs": { "maxDuration": 30 },
     "api/services/fees.mjs": { "maxDuration": 30 },
