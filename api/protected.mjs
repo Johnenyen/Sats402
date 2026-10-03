@@ -39,18 +39,10 @@ const jsonHandle = handle;
 export default async function handler(req, res) {
   const originalEnd = res.end.bind(res);
   const originalSetHeader = res.setHeader.bind(res);
-  let intercepted = false;
-  res.setHeader = function (name, value) {
-    if (String(name).toLowerCase() === 'content-type') {
-      intercepted = true;
-      return originalSetHeader(name, 'text/html; charset=utf-8');
-    }
-    return originalSetHeader(name, value);
-  };
+  // Decide at response time: only a successful JSON serve becomes the paid
+  // page. The 402 challenge and every rejection pass through untouched.
   res.end = function (chunk, ...rest) {
-    // Only render the paid page on a successful serve. The 402 challenge and
-    // any rejection must pass through untouched.
-    if (intercepted && res.statusCode === 200 && typeof chunk === 'string' && chunk.startsWith('{')) {
+    if (res.statusCode === 200 && typeof chunk === 'string' && chunk.trim().startsWith('{')) {
       let data = {};
       try {
         data = JSON.parse(chunk);
@@ -86,6 +78,7 @@ Sats402 — SDK and protocol for x402 pay-per-request payments in native sats on
 Every settlement is a tx id on Tachi: daemon-returned and re-fetchable.
 </p>
 </div></body></html>`;
+      originalSetHeader('content-type', 'text/html; charset=utf-8');
       return originalEnd(page, ...rest);
     }
     return originalEnd(chunk, ...rest);
