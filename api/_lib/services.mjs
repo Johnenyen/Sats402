@@ -65,6 +65,11 @@ export function dataFeedPaywall(opts) {
       serve: async (req, res) => {
         const product = await opts.fetchProduct();
         res.statusCode = 200;
+        if (opts.render) {
+          res.setHeader('content-type', 'text/html; charset=utf-8');
+          res.end(opts.render(product));
+          return;
+        }
         res.setHeader('content-type', 'application/json');
         res.end(JSON.stringify(product, null, 2));
       },

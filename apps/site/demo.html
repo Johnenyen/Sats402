@@ -37,6 +37,8 @@
     </p>
     <div class="cta">
       <button class="btn btn-primary" id="try-data">Buy market data · 5 sats</button>
+      <button class="btn btn-ghost" id="try-fees">Buy fee estimates · 5 sats</button>
+      <button class="btn btn-ghost" id="try-network">Buy network state · 5 sats</button>
       <button class="btn btn-ghost" id="try-inference">Buy a grounded answer · 50 sats</button>
     </div>
     <pre id="tryout" style="display:none; margin-top:20px;"></pre>
@@ -112,7 +114,12 @@
     }
   }
   document.getElementById('try-data').addEventListener('click', () => runDemo('data'));
+  document.getElementById('try-fees').addEventListener('click', () => runDemo('fees'));
+  document.getElementById('try-network').addEventListener('click', () => runDemo('network'));
   document.getElementById('try-inference').addEventListener('click', () => runDemo('inference'));
+  // Deep link: /demo?target=fees runs that service immediately.
+  const preset = new URLSearchParams(location.search).get('target');
+  if (['data', 'fees', 'network', 'inference'].includes(preset)) runDemo(preset);
 
   async function liveBadge(el, tx) {
     try {

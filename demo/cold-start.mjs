@@ -200,7 +200,7 @@ async function main() {
 
   // ---- SUMMARY --------------------------------------------------------
   line('=== SUMMARY ===');
-  line(`  loop:      agent -> S2 (50 sats) and S2 -> S1 (5 sats), both re-fetchable`);
+  line(`  loop:      agent -> inference service (50 sats), inference -> data service (5 sats), both re-fetchable`);
   line(`  burst:     ${latencies.length} paid calls, p50 ${pct(50)} ms, p95 ${pct(95)} ms`);
   line(`  failures:  wrong amount rejected by the server, over-budget call refused locally`);
   line(`  agent spent this session: ${buyer.spentSats} sats of a 500-sat budget`);

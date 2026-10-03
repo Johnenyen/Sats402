@@ -72,15 +72,19 @@ export default async function handler(req, res) {
   }
 
   const body = await readJson(req);
-  const target = body.target === 'inference' ? 'inference' : 'data';
+  const TARGETS = {
+    data: { url: `${SELF}/api/services/price`, price: '5', post: false },
+    fees: { url: `${SELF}/api/services/fees`, price: '5', post: false },
+    network: { url: `${SELF}/api/services/network`, price: '5', post: false },
+    inference: { url: `${SELF}/api/services/inference`, price: '50', post: true },
+  };
+  const target = TARGETS[body.target] ? body.target : 'data';
+  const selected = TARGETS[target];
 
   const identity = deriveIdentity(AGENT_MNEMONIC, 'regtest', 0);
   const dataService = deriveIdentity(DATA_MNEMONIC, 'regtest', 0);
   const inferenceService = deriveIdentity(INFERENCE_MNEMONIC, 'regtest', 0);
-  const url =
-    target === 'inference'
-      ? `${SELF}/api/services/inference`
-      : `${SELF}/api/services/price`;
+  const url = selected.url;
 
   // Keep the demo self-healing: if the inference wallet is low, the agent tops
   // it up so that service can keep buying data. Infrastructure, reported as such.
@@ -115,9 +119,11 @@ export default async function handler(req, res) {
   try {
     // 1. The unpaid call: show the challenge the service issues.
     const init = {
-      method: target === 'inference' ? 'POST' : 'GET',
-      headers: target === 'inference' ? { 'content-type': 'application/json' } : {},
-      body: target === 'inference' ? JSON.stringify({ question: body.question ?? '' }) : undefined,
+      method: selected.post ? 'POST' : 'GET',
+      headers: selected.post ? { 'content-type': 'application/json' } : {},
+      body: selected.post
+        ? JSON.stringify({ question: body.question ?? '' })
+        : undefined,
     };
     const probe = await fetch(url, init);
     const challenge = probe.headers.get('PAYMENT-REQUIRED')
@@ -144,7 +150,7 @@ export default async function handler(req, res) {
       JSON.stringify(
         {
           target,
-          price_sats: target === 'inference' ? '50' : '5',
+          price_sats: selected.price,
           challenge_seen: challenge
             ? {
                 price: challenge.accepts?.[0]?.amount,
