@@ -48,7 +48,9 @@ export default async function handler(req, res) {
     return originalSetHeader(name, value);
   };
   res.end = function (chunk, ...rest) {
-    if (intercepted && typeof chunk === 'string' && chunk.startsWith('{')) {
+    // Only render the paid page on a successful serve. The 402 challenge and
+    // any rejection must pass through untouched.
+    if (intercepted && res.statusCode === 200 && typeof chunk === 'string' && chunk.startsWith('{')) {
       let data = {};
       try {
         data = JSON.parse(chunk);
@@ -67,7 +69,9 @@ export default async function handler(req, res) {
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet" />
 <link rel="stylesheet" href="/assets/style.css" /></head><body>
 <nav class="nav"><a class="brand" href="/">Sats402<span class="dot-accent">.</span></a>
-<div class="links"><a href="/">Home</a><a href="/services">Services</a><a href="/demo">Demo</a><a href="/verify">Verify</a></div></nav>
+<div class="links"><a href="/">Home</a><a href="/services">Services</a><a href="/demo">Demo</a><a href="/verify">Verify</a>
+<a href="https://github.com/Johnenyen/Sats402/blob/main/PROTOCOL.md" target="_blank" rel="noopener">Docs</a>
+<a class="btn-nav" href="https://github.com/Johnenyen/Sats402" target="_blank" rel="noopener">GitHub</a></div></nav>
 <div class="wrap"><div class="frame">
 <span class="eyebrow"><span class="dot"></span> Protected page example</span>
 <h1>Market brief<span class="grad">, paid in sats.</span></h1>
@@ -76,7 +80,12 @@ JSON endpoints guards rendered content: challenge, settlement, proof, page.</p>
 <table><tbody>${rows}</tbody></table>
 <div class="note">The payment for this page is a Tachi transaction you can
 re-fetch. Verify it on the <a href="/verify">verify page</a>.</div>
-</div></div></body></html>`;
+</div>
+<p class="foot">
+Sats402 — SDK and protocol for x402 pay-per-request payments in native sats on Tachi.<br />
+Every settlement is a tx id on Tachi: daemon-returned and re-fetchable.
+</p>
+</div></body></html>`;
       return originalEnd(page, ...rest);
     }
     return originalEnd(chunk, ...rest);

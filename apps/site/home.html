@@ -15,7 +15,7 @@
 <nav class="nav">
   <a class="brand" href="/">Sats402<span class="dot-accent">.</span></a>
   <div class="links">
-    <a href="/">Home</a>
+    <a class="active" href="/">Home</a>
     <a href="/services">Services</a>
     <a href="/demo">Demo</a>
     <a href="/verify">Verify</a>
@@ -50,7 +50,7 @@
       <span class="feature"><span class="k" style="background:#65a30d"></span>Machine-readable catalog</span>
     </div>
     <div class="proof-strip">
-      <div class="proof p1"><b>High-velocity</b>20 paid calls in a row, latency measured on the ledger.</div>
+      <div class="proof p1"><b>High-velocity</b>20 paid calls in a row, latency measured end to end.</div>
       <div class="proof p2"><b>Verifiable</b>Every receipt is a tx id anyone can re-fetch from the daemon.</div>
       <div class="proof p3"><b>Sovereign</b>The key that owns the sats signs the payment. Verifiers hold no key.</div>
     </div>
@@ -126,16 +126,16 @@
       <div class="card">
         <span class="tag">For everyone</span>
         <h3>Receipts you can re-fetch</h3>
-        <p>Every settlement is a tx id on Tachi. Verify it with one command,
-        <code>npx sats402 verify &lt;txid&gt;</code>, or on the verify page.</p>
+        <p>Every settlement is a tx id on Tachi. Check it on the
+        <a href="/verify">verify page</a> or with one command in the CLI
+        (from a checkout until the npm package is published).</p>
       </div>
     </div>
   </div>
 
   <p class="foot">
     Sats402 — SDK and protocol for x402 pay-per-request payments in native sats on Tachi.<br />
-    Built for the Tachi hackathon bounty "x402 on Bitcoin". Every record is
-    daemon-returned and re-fetchable.
+    Every settlement is a tx id on Tachi: daemon-returned and re-fetchable.
   </p>
 </div>
 

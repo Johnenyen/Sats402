@@ -1,6 +1,6 @@
 // The demo agent: run a real paid call from the website.
 //
-// POST /api/demo/call  { "target": "s1" | "s2", "question": "..." }
+// POST /api/demo/call  { "target": "data" | "inference", "question": "..." }
 //
 // Acts exactly like any Sats402 agent: it receives the 402 challenge, checks
 // its own spending policy, settles with its own key (a real tachi_tx), retries
@@ -19,10 +19,12 @@ const SELF = process.env.SATS402_PUBLIC_URL ?? 'https://sats402-receipts.vercel.
 const AGENT_MNEMONIC =
   process.env.SATS402_AGENT_MNEMONIC ??
   'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about';
-const S1_MNEMONIC =
+const DATA_MNEMONIC =
+  process.env.SATS402_DATA_MNEMONIC ??
   process.env.SATS402_S1_MNEMONIC ??
   'legal winner thank year wave sausage worth useful legal winner thank yellow';
-const S2_MNEMONIC =
+const INFERENCE_MNEMONIC =
+  process.env.SATS402_INFERENCE_MNEMONIC ??
   process.env.SATS402_S2_MNEMONIC ??
   'letter advice cage absurd amount doctor acoustic avoid letter advice cage above';
 
@@ -49,7 +51,7 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') {
     res.statusCode = 405;
     res.setHeader('content-type', 'application/json');
-    res.end(JSON.stringify({ error: 'POST { target: "s1" | "s2", question? }' }));
+    res.end(JSON.stringify({ error: 'POST { target: "data" | "inference", question? }' }));
     return;
   }
 
@@ -70,11 +72,11 @@ export default async function handler(req, res) {
   }
 
   const body = await readJson(req);
-  const target = body.target === 'inference' || body.target === 's2' ? 'inference' : 'data';
+  const target = body.target === 'inference' ? 'inference' : 'data';
 
   const identity = deriveIdentity(AGENT_MNEMONIC, 'regtest', 0);
-  const s1 = deriveIdentity(S1_MNEMONIC, 'regtest', 0);
-  const s2 = deriveIdentity(S2_MNEMONIC, 'regtest', 0);
+  const dataService = deriveIdentity(DATA_MNEMONIC, 'regtest', 0);
+  const inferenceService = deriveIdentity(INFERENCE_MNEMONIC, 'regtest', 0);
   const url =
     target === 'inference'
       ? `${SELF}/api/services/inference`
@@ -83,16 +85,20 @@ export default async function handler(req, res) {
   // Keep the demo self-healing: if the inference wallet is low, the agent tops
   // it up so that service can keep buying data. Infrastructure, reported as such.
   let setupTopup = null;
-  const s2Balance = await getSpendableSats(s2, DAEMON);
-  if (target === 'inference' && s2Balance < 20n) {
+  const inferenceBalance = await getSpendableSats(inferenceService, DAEMON);
+  if (target === 'inference' && inferenceBalance < 20n) {
     const tx = await settleTransfer({
       identity,
-      recipientAddress: userAddressForXOnly(s2.xOnly),
+      recipientAddress: userAddressForXOnly(inferenceService.xOnly),
       amountSats: 100n,
       feeSats: 1n,
       daemonUrl: DAEMON,
     });
-    setupTopup = { what: 'top up S2 key so it can buy facts', amountSats: '100', tx: tx.txHash };
+    setupTopup = {
+      what: 'top up the inference service wallet so it can buy data',
+      amountSats: '100',
+      tx: tx.txHash,
+    };
   }
 
   const agent = new Sats402Agent({
@@ -102,7 +108,7 @@ export default async function handler(req, res) {
     policy: {
       perCallCapSats: 60n,
       sessionBudgetSats: 400n,
-      payeeAllowlist: [s1.xOnly, s2.xOnly],
+      payeeAllowlist: [dataService.xOnly, inferenceService.xOnly],
     },
   });
 
@@ -163,7 +169,9 @@ export default async function handler(req, res) {
           wallet: {
             agent_balance_sats: String(await getSpendableSats(identity, DAEMON)),
             agent_spent_this_call_sats: String(agent.spentSats),
-            s2_balance_sats: String(await getSpendableSats(s2, DAEMON)),
+            inference_service_balance_sats: String(
+              await getSpendableSats(inferenceService, DAEMON)
+            ),
           },
           verify_command: receipt?.transaction
             ? `npx sats402 verify ${receipt.transaction}`

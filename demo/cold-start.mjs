@@ -217,7 +217,7 @@ async function main() {
     receipts: [
       {
         what: 'buy the answer',
-        description: 'agent -> S2 (model completion), agent-to-agent',
+        description: 'agent -> inference service (model completion), agent-to-agent',
         amountSats: '50',
         tx: receiptHeader.transaction,
         state: r1.state,
@@ -225,7 +225,7 @@ async function main() {
       },
       {
         what: 'buy the fact',
-        description: 'S2 -> S1 (live daemon read), agent-to-service',
+        description: 'inference service -> data service (live daemon read), agent-to-service',
         amountSats: '5',
         tx: body.s1_payment.tx,
         state: r2.state,

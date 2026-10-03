@@ -10,6 +10,7 @@ import { paywall, FileReplayStore } from '@sats402/express';
 import { Sats402Agent } from '@sats402/agent';
 import { deriveIdentity, NETWORK_TACHI_REGTEST } from '@sats402/core';
 import { readJson } from '../_lib/readjson.mjs';
+import { withCors } from '../_lib/services.mjs';
 
 const DAEMON = process.env.SATS402_DAEMON ?? 'https://rpc-regtest.tachibtc.com';
 const SELF = process.env.SATS402_PUBLIC_URL ?? 'https://sats402-receipts.vercel.app';
@@ -34,17 +35,20 @@ const dataPayee = deriveIdentity(
   0
 );
 
-// The service's own agent: its key, its policy, its payments.
-const buyer = new Sats402Agent({
-  identity: inference,
-  daemonUrl: DAEMON,
-  network: NETWORK_TACHI_REGTEST,
-  policy: {
-    perCallCapSats: 10n,
-    sessionBudgetSats: 2000n,
-    payeeAllowlist: [dataPayee.xOnly],
-  },
-});
+// The service's own agent: its key, its policy, its payments. Created per
+// request so one customer's spend never locks out the next.
+function makeBuyer() {
+  return new Sats402Agent({
+    identity: inference,
+    daemonUrl: DAEMON,
+    network: NETWORK_TACHI_REGTEST,
+    policy: {
+      perCallCapSats: 10n,
+      sessionBudgetSats: 100n,
+      payeeAllowlist: [dataPayee.xOnly],
+    },
+  });
+}
 
 function b64(value) {
   return JSON.parse(Buffer.from(value, 'base64').toString('utf8'));
@@ -63,12 +67,25 @@ const handle = paywall({
   },
   serve: async (req, res) => {
     const body = await readJson(req);
+    // Bound the question: length cap and control characters stripped.
+    const question = String(body.question ?? '')
+      .slice(0, 2000)
+      .replace(/[\u0000-\u001f]/g, ' ');
 
     // CANNOT ANSWER UNTIL IT HAS BOUGHT the live data the answer needs.
-    const dataRes = await buyer.fetch(DATA_URL);
-    const paidData = await dataRes.json();
-    const dataReceiptRaw = dataRes.headers.get('PAYMENT-RESPONSE');
-    const dataReceipt = dataReceiptRaw ? b64(dataReceiptRaw) : { transaction: 'n/a' };
+    const buyer = makeBuyer();
+    let paidData = {};
+    let dataReceipt = { transaction: 'n/a' };
+    try {
+      const dataRes = await buyer.fetch(DATA_URL);
+      paidData = await dataRes.json();
+      const dataReceiptRaw = dataRes.headers.get('PAYMENT-RESPONSE');
+      dataReceipt = dataReceiptRaw ? b64(dataReceiptRaw) : { transaction: 'n/a' };
+    } catch (err) {
+      paidData = {
+        data_purchase_failed: String(err instanceof Error ? err.message : err),
+      };
+    }
 
     const apiKey = process.env.XKIRO_API_KEY ?? '';
     let answer;
@@ -94,7 +111,7 @@ const handle = paywall({
               },
               {
                 role: 'user',
-                content: `Question: ${body.question ?? ''}\nPaid live data: ${JSON.stringify(paidData)}`,
+                content: `Question: ${question}\nPaid live data: ${JSON.stringify(paidData)}`,
               },
             ],
           }),
@@ -131,6 +148,6 @@ const handle = paywall({
   },
 });
 
-export default function handler(req, res) {
+export default withCors(function handler(req, res) {
   return handle(req, res);
-}
+});

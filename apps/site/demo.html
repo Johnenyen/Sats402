@@ -100,7 +100,10 @@
       const res = await fetch('/api/demo/call', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ target }),
+        body: JSON.stringify({
+          target,
+          question: 'What is the recommended fee on this Tachi network right now?',
+        }),
       });
       const data = await res.json();
       out.textContent = JSON.stringify(data, null, 2);
@@ -136,12 +139,12 @@
         rows.push(
           '<tr><td><span class="pill lav">' + esc(r.what) + '</span></td>' +
           '<td>' + esc(r.description) + ', <b>' + esc(r.amountSats) + ' sats</b></td>' +
-          '<td class="mono"><a href="/receipt/' + r.tx + '">' + r.tx.slice(0, 14) + '…' + r.tx.slice(-8) + '</a></td>' +
+          '<td class="mono"><a href="/verify?tx=' + r.tx + '">' + r.tx.slice(0, 14) + '…' + r.tx.slice(-8) + '</a></td>' +
           '<td><span class="badge b-wait" data-tx="' + r.tx + '">checking…</span></td></tr>'
         );
       }
       const b = ev.burst;
-      const txLinks = b.txids.map((t, i) => '<a href="/receipt/' + t + '">' + (i + 1) + '</a>').join(' · ');
+      const txLinks = b.txids.map((t, i) => '<a href="/verify?tx=' + t + '">' + (i + 1) + '</a>').join(' · ');
       rows.push(
         '<tr><td><span class="pill peach">burst</span></td>' +
         '<td>' + b.count + '/' + b.count + ' paid calls · p50 <b>' + b.p50_ms + ' ms</b> · p95 <b>' + b.p95_ms + ' ms</b> · max ' + b.max_ms + ' ms</td>' +

@@ -16,7 +16,17 @@ export function readJson(req) {
   }
   return new Promise((resolve) => {
     let raw = '';
-    req.on('data', (c) => (raw += c));
+    let bytes = 0;
+    const MAX_BYTES = 64 * 1024;
+    req.on('data', (c) => {
+      bytes += c.length;
+      if (bytes > MAX_BYTES) {
+        resolve({ __error: 'payload too large' });
+        req.destroy();
+        return;
+      }
+      raw += c;
+    });
     req.on('end', () => {
       try {
         resolve(JSON.parse(raw || '{}'));
