@@ -131,18 +131,18 @@ shape.
   "resource": "https://api.example.com/data",
   "accepted": { /* PaymentRequirements echoed verbatim */ },
   "payload": {
+    "signature": "<128 hex>",       // BIP-340 over the bound message by from
     "authorization": {
-      "from": "<payer xonly>",       // 64 lowercase hex
-      "to": "<payee xonly>",         // equals accepted.payTo
-      "value": "50",                 // equals accepted.amount
-      "nonce": "<64 hex>",
-      "validAfter": 1790000000,
-      "validBefore": 1790003600,
-      "signature": "<128 hex>"       // BIP-340 over the bound message
+      "from": "<payer xonly>",      // 64 lowercase hex
+      "to": "<payee xonly>",        // equals accepted.payTo
+      "value": "50",                // equals accepted.amount
+      "validAfter": "1790000000",   // unix seconds, decimal string
+      "validBefore": "1790003600",  // unix seconds, decimal string
+      "nonce": "<64 hex>"           // 32 random bytes, lowercase hex
     },
     "settlement": {
-      "txHash": "<64 hex>",          // the tachi_tx the client broadcast
-      "state": "committed"           // daemon-returned state at verification
+      "txHash": "<64 hex>",         // the tachi_tx the client broadcast
+      "state": "committed"          // daemon-returned state at verification
     }
   }
 }
@@ -150,9 +150,10 @@ shape.
 
 `accepted` MUST be byte-for-byte the requirements the server issued.
 `authorization.to` and `authorization.value` MUST equal `accepted.payTo` and
-`accepted.amount`. The signature MUST verify under `authorization.from` over the
+`accepted.amount`. `signature` MUST verify under `authorization.from` over the
 bound message derived from `accepted` and the authorization nonce and validity
-window.
+window. The payload shape mirrors the `exact` scheme's payload (a top-level
+`signature` beside `authorization`) with the Tachi-specific `settlement` proof.
 
 ## Request Binding Test Vectors
 

@@ -1,0 +1,34 @@
+{
+  "name": "@sats402/core",
+  "version": "0.1.0",
+  "description": "Sats402 core: x402 exact-scheme types, payment binding, and read-only verification for Tachi settlement",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "license": "MIT",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "node --test test/pure.test.mjs",
+    "test:live": "node --test test/live-gate.test.mjs"
+  },
+  "dependencies": {
+    "@noble/curves": "^2.4.0",
+    "@noble/hashes": "^2.4.0",
+    "@tachibtc/taurus-vault-core": "^0.3.5",
+    "@tachibtc/taurus-wallet-aggregator": "^0.4.5"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.4",
+    "typescript": "^7.0.2"
+  }
+}
