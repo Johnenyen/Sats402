@@ -1,0 +1,28 @@
+{
+  "name": "@sats402/express",
+  "version": "0.1.0",
+  "description": "Sats402 paywall for paid services: x402 challenge and read-only payment verification. Holds no key, moves no funds.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": ["dist", "README.md"],
+  "license": "MIT",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test:live": "node --test test/live-e2e.test.mjs"
+  },
+  "dependencies": {
+    "@sats402/core": "file:../core"
+  },
+  "devDependencies": {
+    "@sats402/agent": "file:../agent",
+    "typescript": "^7.0.2",
+    "@types/node": "^25.0.0"
+  }
+}

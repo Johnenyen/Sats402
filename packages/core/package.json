@@ -9,6 +9,10 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./verify": {
+      "types": "./dist/readonly.d.ts",
+      "import": "./dist/readonly.js"
     }
   },
   "files": [

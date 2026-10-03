@@ -15,6 +15,7 @@ import {
   type ResourceInfo,
   type TachiSettlement,
 } from './types.js';
+import { buildBoundMessage } from './binding.js';
 import type { SchnorrSigner } from './keys.js';
 
 /** 32 random bytes as 64 lowercase hex (nonce). */
@@ -22,29 +23,6 @@ export function randomNonce(): string {
   const b = new Uint8Array(32);
   globalThis.crypto.getRandomValues(b);
   return Array.from(b, (x) => x.toString(16).padStart(2, '0')).join('');
-}
-
-/**
- * The bound message, per scheme_exact_tachi.md:
- *
- *   sats402-exact-tachi:v1:nonce:<64 hex>:after:<unix>:before:<unix>:
- *   value:<sats>:to:<payee xonly>:network:<network>:resource:<url>
- */
-export function buildBoundMessage(
-  accepted: PaymentRequirements,
-  authorization: Authorization,
-  resourceUrl: string
-): string {
-  return [
-    BOUND_MESSAGE_TAG,
-    `nonce:${authorization.nonce}`,
-    `after:${authorization.validAfter}`,
-    `before:${authorization.validBefore}`,
-    `value:${accepted.amount}`,
-    `to:${accepted.payTo}`,
-    `network:${accepted.network}`,
-    `resource:${resourceUrl}`,
-  ].join(':');
 }
 
 export interface FormPaymentArgs {

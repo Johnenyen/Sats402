@@ -7,7 +7,7 @@
  */
 import { schnorr } from '@noble/curves/secp256k1.js';
 import { sha256 } from '@noble/hashes/sha2.js';
-import { buildBoundMessage } from './bind.js';
+import { buildBoundMessage } from './binding.js';
 import {
   ErrorCode,
   X402_VERSION,

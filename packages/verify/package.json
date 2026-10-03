@@ -1,0 +1,29 @@
+{
+  "name": "@sats402/verify",
+  "version": "0.1.0",
+  "description": "Sats402 read-only verifier: checks a settlement against Tachi daemon state. Holds no key, broadcasts nothing.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "bin": {
+    "sats402-verify": "./bin/verify.mjs"
+  },
+  "files": ["dist", "bin", "README.md"],
+  "license": "MIT",
+  "scripts": {
+    "build": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@sats402/core": "file:../core"
+  },
+  "devDependencies": {
+    "typescript": "^7.0.2",
+    "@types/node": "^25.0.0"
+  }
+}
