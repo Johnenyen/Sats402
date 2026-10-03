@@ -11,7 +11,8 @@ import { NETWORK_TACHI_REGTEST } from '../packages/core/dist/index.js';
 import { Sats402Agent } from '../packages/agent/dist/index.js';
 
 const DAEMON = process.env.SATS402_DAEMON ?? 'https://rpc-regtest.tachibtc.com';
-const XKIRO_URL = 'https://api.xkiro.com/v1/chat/completions';
+const XKIRO_URL =
+  process.env.SATS402_XKIRO_URL ?? 'https://api.xkiro.com/v1/chat/completions';
 // Cloudflare rejects non-browser clients on this API (error 1010).
 const BROWSER_UA =
   'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36';

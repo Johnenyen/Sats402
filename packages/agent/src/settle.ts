@@ -67,6 +67,13 @@ export async function getSpendableSats(identity: Identity, daemonUrl: string): P
     .reduce((sum, v) => sum + v.amountSats, 0n);
 }
 
+/**
+ * Vault CSV delay used when reconstructing a vault. A construction constant:
+ * it must match the value the vault was created with or the reconstructed
+ * vault address changes. Not deployment configuration.
+ */
+const VAULT_CSV_BLOCKS = 2;
+
 export async function settleTransfer(args: SettleArgs): Promise<SettlementResult> {
   const feeSats = args.feeSats ?? 1n;
   const base = args.daemonUrl.replace(/\/$/, '');
@@ -82,7 +89,7 @@ export async function settleTransfer(args: SettleArgs): Promise<SettlementResult
   const vault = await createVault({
     network: (args.network ?? 'regtest') as 'regtest',
     nodePubkeys: quorum.nodePubkeys,
-    csvBlocks: 2,
+    csvBlocks: VAULT_CSV_BLOCKS,
     userKeyDescriptor: args.identity.userKeyDescriptor as never,
   });
 
