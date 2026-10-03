@@ -146,7 +146,12 @@ export function paywall(opts: PaywallOptions) {
 
     const payer = payload?.payload?.authorization?.from ?? '';
 
-    // 1. The payment must be for the requirement this server issued.
+    // 1. The payment must be for the requirement this server issued. Network
+    // is called out first so a cross-network payment reports the right error.
+    if (payload.accepted && payload.accepted.network !== opts.network) {
+      sendRejected(res, opts, 'network_mismatch', payer);
+      return;
+    }
     if (!payload.accepted || !sameRequirement(payload.accepted, requirement(opts))) {
       sendRejected(res, opts, 'invalid_payment_requirements', payer);
       return;

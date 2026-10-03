@@ -31,8 +31,13 @@ export interface Identity {
   signer: Sats402Signer;
 }
 
-/** Regtest bech32m human-readable part. */
-const HRP_REGTEST = 'bcrt';
+/** Bech32m human-readable parts per Bitcoin network. */
+const HRP: Record<string, string> = {
+  regtest: 'bcrt',
+  signet: 'tb',
+  testnet: 'tb',
+  mainnet: 'bc',
+};
 
 /**
  * P2TR address for an x-only key: witness v1, 32-byte program (BIP-350).
@@ -42,9 +47,11 @@ export function userAddressForXOnly(xOnly: string, network = 'regtest'): string 
   if (!/^[0-9a-f]{64}$/.test(xOnly)) {
     throw new Error('xOnly must be 64 lowercase hex characters');
   }
+  const hrp = HRP[network];
+  if (!hrp) throw new Error(`unsupported network for address encoding: ${network}`);
   const program = Uint8Array.from(xOnly.match(/.{2}/g)!.map((b) => parseInt(b, 16)));
   const words = [1, ...bech32m.toWords(program)];
-  return bech32m.encode(network === 'regtest' ? HRP_REGTEST : 'bcrt', words);
+  return bech32m.encode(hrp, words);
 }
 
 /**

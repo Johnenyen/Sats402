@@ -30,6 +30,12 @@ export interface SettleArgs {
   feeSats?: bigint;
   /** Tachid base URL, e.g. https://rpc-regtest.tachibtc.com */
   daemonUrl: string;
+  /**
+   * Tachi network the vault is reconstructed for (default `regtest`).
+   * Regtest is the build target; signet is the same code with a different
+   * daemon URL and this name.
+   */
+  network?: string;
 }
 
 export interface SettlementResult {
@@ -74,7 +80,7 @@ export async function settleTransfer(args: SettleArgs): Promise<SettlementResult
   // user key descriptor; no registration or state is required to spend.
   const quorum = await fetchConsensusQuorum(opts);
   const vault = await createVault({
-    network: 'regtest',
+    network: (args.network ?? 'regtest') as 'regtest',
     nodePubkeys: quorum.nodePubkeys,
     csvBlocks: 2,
     userKeyDescriptor: args.identity.userKeyDescriptor as never,

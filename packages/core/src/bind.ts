@@ -43,7 +43,7 @@ export interface FormPaymentArgs {
   nowSeconds?: number;
 }
 
-function hex32(u: Uint8Array): string {
+function bytesToHex(u: Uint8Array): string {
   return Array.from(u, (b) => b.toString(16).padStart(2, '0')).join('');
 }
 
@@ -65,7 +65,7 @@ export function formPayment(args: FormPaymentArgs): PaymentPayload {
 
   const message = buildBoundMessage(args.accepted, authorization, args.resource.url);
   const digest = sha256(new TextEncoder().encode(message));
-  const signature = hex32(args.signer.signSchnorr(digest));
+  const signature = bytesToHex(args.signer.signSchnorr(digest));
 
   return {
     x402Version: X402_VERSION,

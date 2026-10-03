@@ -89,15 +89,12 @@ export async function fetchSettlement(
   const t = await fetchTx(base, txHash, fetchImpl);
   if (!t) return null;
 
-  const vin: TachiTxRecord['vin'] = [];
-  for (const v of (t.vin ?? []) as Array<{
-    vtxo_id?: string;
-    txid?: string;
-    vout?: number;
-  }>) {
-    const owner = await resolveInputOwner(base, v.vtxo_id ?? v.txid ?? '', v.vout ?? 0, fetchImpl);
-    vin.push({ owner, vtxoId: v.vtxo_id });
-  }
+  const vin: TachiTxRecord['vin'] = await Promise.all(
+    ((t.vin ?? []) as Array<{ vtxo_id?: string; txid?: string; vout?: number }>).map(async (v) => ({
+      owner: await resolveInputOwner(base, v.vtxo_id ?? v.txid ?? '', v.vout ?? 0, fetchImpl),
+      vtxoId: v.vtxo_id,
+    }))
+  );
 
   return {
     hash: String(t.txHash ?? ''),
