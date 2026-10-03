@@ -1,0 +1,91 @@
+{
+  "run_at": "2026-10-03T12:54:50.723Z",
+  "network": "tachi-regtest-1",
+  "daemon": "https://rpc-regtest.tachibtc.com",
+  "model": "mistralai/ministral-14b",
+  "prompt": "What is the recommended fee on this Tachi network right now, and is 50 sats enough for ten calls?",
+  "answer": "Current **recommended fee** is **1 sat/vB** (min/avg/recommended all match). For **10 calls**, ensure total fee (10 sats) covers transaction size. **50 sats is overkill**—likely sufficient, but verify exact vB size via `txsize` in `tachid`. Confirm with `getnetworkinfo` for real-time adjustments.",
+  "receipts": [
+    {
+      "what": "buy the answer",
+      "description": "agent -> S2 (model completion), agent-to-agent",
+      "amountSats": "50",
+      "tx": "cf50c1a0afd52b395835e75b8409de8b7e9dc08e4ab5f7e51b74dc61817cf81b",
+      "state": "committed",
+      "epoch": 966077
+    },
+    {
+      "what": "buy the fact",
+      "description": "S2 -> S1 (live daemon read), agent-to-service",
+      "amountSats": "5",
+      "tx": "a11172bbbf6946bd44f4abba21fa3b0b218b5da5db0ea23d57792158cbd17f9f",
+      "state": "committed",
+      "epoch": 966078
+    }
+  ],
+  "burst": {
+    "count": 20,
+    "latencies_ms": [
+      3168,
+      4230,
+      4235,
+      4257,
+      4257,
+      4273,
+      5499,
+      5501,
+      5502,
+      5508,
+      5510,
+      5521,
+      5523,
+      5526,
+      5526,
+      5531,
+      5532,
+      5539,
+      5550,
+      5552
+    ],
+    "p50_ms": 5508,
+    "p95_ms": 5550,
+    "max_ms": 5552,
+    "txids": [
+      "b6d2d00f0218706f62ccddfaba936ce6a4eee7d4333274805328f80102e076d7",
+      "7ca2c1b6b00e0c2f7586c1e40fd924e837c19494056fcc83a7455763b9c0098d",
+      "a2f3b91a6eb8d6c8a1fb093a1779834c0ebd2b0d8a41921e682b4e141145bf07",
+      "b0e8e6edde687e7bb9e10ed07e29e7194de36b8358d11779c796fe60875f04bd",
+      "7933d33afcca2cd73dc46872b662503250d8893d9f5edd0b89d00991bb3597df",
+      "ee50d7016ac401e49b5beb7ff6829cff5b890a9bc221dde5a339fe093acfd72c",
+      "76589c5839326a524978342963bb981fe85be665fff1a569f6fca1b2a6bf8ef2",
+      "154f29cac599284216ad1ea95acd5ff9f682143a1b2e60118e9f5519fb257900",
+      "c5d48b7b527207c7b87a7b4cae34c0a43efc9ee259d8e6b1727430752bc979d2",
+      "95b814d7a18c299e3e3efa11add6da262cc39f34eae472474c975805f339c9e9",
+      "a12c74a49421e6b38aca49338e912cd8baae049da364998efbd554ff6a951645",
+      "4f51b7ad7ff1586d27ac954045f1b5891c2a4ef4f655c4f2c81361cd72b50e44",
+      "306736dfd06e97b5572009717a2333c05e710b7b26877d67c2b09ad5204db2fe",
+      "9d81d8eb6dd99b1dde12d18a6395426eda870887d887cfaedea7f0e8c01446ff",
+      "27d2f3262d4ec18825d3b8aad645daa8382c5f7c41aec0a217bd5115e21f8675",
+      "2bfbe41577dc73e739ccde1f4cffd789532847448a5f58fcbc7b76590f21b63b",
+      "619a8b26cc1c4afbd8e9970050e6947f9c173cdc034f98c6bc573a89f9d86059",
+      "4f7685cb3dc7a1e9bf76edb784e43d781bdd4565375da562a3f52a878cfcff6f",
+      "c4fcf3982afa2784f74bc5c7e15612d6cb06603f532f2f7f3c1eda7c911f7691",
+      "08676364968dcdc2b050f2d59612f302caebf7257c7d6f7f8c913e050cd21c02"
+    ]
+  },
+  "failures": [
+    {
+      "what": "wrong amount",
+      "description": "a signed payment for 49 sats against a 50-sat challenge",
+      "result": "rejected by the server: invalid_payment_requirements",
+      "second_charge": false
+    },
+    {
+      "what": "over session budget",
+      "description": "a call that would break the agent session budget",
+      "result": "refused locally by the agent",
+      "transaction_made": false
+    }
+  ],
+  "agent_spent_sats": "171"
+}

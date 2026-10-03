@@ -1,0 +1,136 @@
+// Service: grounded AI inference — the model an agent buys.
+//
+// POST /api/services/inference  { "question": "..." }
+//   402 + PAYMENT-REQUIRED (50 sats) until paid; then a grounded answer.
+//
+// This service is itself an agent with its own key and spend policy: it
+// cannot answer until it has bought the live network data the answer needs
+// (from /api/services/network, 5 sats). Two purchase types, one request.
+import { paywall, FileReplayStore } from '@sats402/express';
+import { Sats402Agent } from '@sats402/agent';
+import { deriveIdentity, NETWORK_TACHI_REGTEST } from '@sats402/core';
+import { readJson } from '../_lib/readjson.mjs';
+
+const DAEMON = process.env.SATS402_DAEMON ?? 'https://rpc-regtest.tachibtc.com';
+const SELF = process.env.SATS402_PUBLIC_URL ?? 'https://sats402-receipts.vercel.app';
+const DATA_URL = process.env.SATS402_DATA_URL ?? `${SELF}/api/services/network`;
+const XKIRO_URL =
+  process.env.SATS402_XKIRO_URL ?? 'https://api.xkiro.com/v1/chat/completions';
+const MODEL = process.env.SATS402_MODEL ?? 'mistralai/ministral-14b';
+// Cloudflare rejects non-browser clients on this API (error 1010).
+const BROWSER_UA =
+  'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36';
+
+const inference = deriveIdentity(
+  process.env.SATS402_INFERENCE_MNEMONIC ??
+    'letter advice cage absurd amount doctor acoustic avoid letter advice cage above',
+  'regtest',
+  0
+);
+const dataPayee = deriveIdentity(
+  process.env.SATS402_DATA_MNEMONIC ??
+    'legal winner thank year wave sausage worth useful legal winner thank yellow',
+  'regtest',
+  0
+);
+
+// The service's own agent: its key, its policy, its payments.
+const buyer = new Sats402Agent({
+  identity: inference,
+  daemonUrl: DAEMON,
+  network: NETWORK_TACHI_REGTEST,
+  policy: {
+    perCallCapSats: 10n,
+    sessionBudgetSats: 2000n,
+    payeeAllowlist: [dataPayee.xOnly],
+  },
+});
+
+function b64(value) {
+  return JSON.parse(Buffer.from(value, 'base64').toString('utf8'));
+}
+
+const handle = paywall({
+  priceSats: 50n,
+  payeeXOnly: inference.xOnly,
+  network: NETWORK_TACHI_REGTEST,
+  daemonUrl: DAEMON,
+  replay: new FileReplayStore('/tmp/sats402-replay-inference.jsonl'),
+  maxTimeoutSeconds: 120,
+  resource: {
+    description: 'A paid AI completion grounded in live Bitcoin and Tachi data',
+    mimeType: 'application/json',
+  },
+  serve: async (req, res) => {
+    const body = await readJson(req);
+
+    // CANNOT ANSWER UNTIL IT HAS BOUGHT the live data the answer needs.
+    const dataRes = await buyer.fetch(DATA_URL);
+    const paidData = await dataRes.json();
+    const dataReceiptRaw = dataRes.headers.get('PAYMENT-RESPONSE');
+    const dataReceipt = dataReceiptRaw ? b64(dataReceiptRaw) : { transaction: 'n/a' };
+
+    const apiKey = process.env.XKIRO_API_KEY ?? '';
+    let answer;
+    if (!apiKey) {
+      answer = 'Inference unavailable: XKIRO_API_KEY is not set on the server.';
+    } else {
+      try {
+        const completion = await fetch(XKIRO_URL, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${apiKey}`,
+            'Content-Type': 'application/json',
+            'User-Agent': BROWSER_UA,
+          },
+          body: JSON.stringify({
+            model: MODEL,
+            max_tokens: 300,
+            messages: [
+              {
+                role: 'system',
+                content:
+                  'You are a Bitcoin network analyst. Answer in under 80 words. Use only the paid live data provided.',
+              },
+              {
+                role: 'user',
+                content: `Question: ${body.question ?? ''}\nPaid live data: ${JSON.stringify(paidData)}`,
+              },
+            ],
+          }),
+        });
+        const parsed = await completion.json().catch(() => ({}));
+        const message = parsed?.choices?.[0]?.message ?? {};
+        answer =
+          message.content ||
+          message.reasoning_content ||
+          `completion unavailable (${completion.status})`;
+      } catch (err) {
+        answer = `completion unavailable: ${String(err instanceof Error ? err.message : err)}`;
+      }
+    }
+
+    res.statusCode = 200;
+    res.setHeader('content-type', 'application/json');
+    res.end(
+      JSON.stringify(
+        {
+          answer,
+          model: MODEL,
+          paid_data: paidData,
+          data_purchase: {
+            what: 'buy the fact',
+            amountSats: '5',
+            tx: dataReceipt.transaction,
+          },
+        },
+        null,
+        2
+      )
+    );
+  },
+});
+
+export default function handler(req, res) {
+  return handle(req, res);
+}

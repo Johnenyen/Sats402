@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Services — Sats402</title>
+<meta name="description" content="Live services agents buy with sats per call: market data, mempool data, network data, and grounded AI inference." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="/assets/style.css" />
+</head>
+<body>
+
+<nav class="nav">
+  <a class="brand" href="/">Sats402<span class="dot-accent">.</span></a>
+  <div class="links">
+    <a href="/">Home</a>
+    <a class="active" href="/services">Services</a>
+    <a href="/demo">Demo</a>
+    <a href="/verify">Verify</a>
+    <a href="https://github.com/Johnenyen/Sats402/blob/main/PROTOCOL.md" target="_blank" rel="noopener">Docs</a>
+    <a class="btn-nav" href="https://github.com/Johnenyen/Sats402" target="_blank" rel="noopener">GitHub</a>
+  </div>
+</nav>
+
+<div class="wrap">
+
+  <div class="frame">
+    <span class="eyebrow"><span class="dot"></span> Endpoints</span>
+    <h1>What agents buy<span class="grad">, priced in sats.</span></h1>
+    <p class="lede">
+      Four live services, arranged the way agents shop for them: data feeds first,
+      then the model. Every endpoint speaks x402: call it, pay the challenge,
+      retry. No accounts, no API keys, no subscriptions.
+    </p>
+    <div class="features">
+      <span class="feature"><span class="k" style="background:var(--ok)"></span>Live upstreams</span>
+      <span class="feature"><span class="k" style="background:var(--accent)"></span>5 sats per data call</span>
+      <span class="feature"><span class="k" style="background:var(--accent-2)"></span>50 sats per inference call</span>
+      <span class="feature"><span class="k" style="background:#d97706"></span>Every call leaves a receipt</span>
+    </div>
+  </div>
+
+  <div class="frame" id="price">
+    <div class="card-head" style="margin-bottom:10px">
+      <span class="pill lav">Market data</span><span class="price">5 sats / call</span>
+    </div>
+    <h2>BTC market price feed</h2>
+    <p class="section-sub">
+      The number agents check most: live BTC price in USD with 24-hour change.
+      Upstream is the CoinGecko public API, read at request time.
+    </p>
+    <pre>GET https://sats402-receipts.vercel.app/api/services/price
+→ 402  PAYMENT-REQUIRED: challenge (5 sats, network tachi:0f9188…, payTo …)
+→ 200  { "asset": "bitcoin", "usd": 84736, "usd_24h_change_pct": -1.46, "source": "CoinGecko public API" }</pre>
+    <div class="cta">
+      <a class="btn btn-primary" href="/demo">Try it with the demo agent</a>
+      <a class="btn btn-ghost" href="/verify">Verify a receipt</a>
+    </div>
+  </div>
+
+  <div class="frame" id="fees">
+    <div class="card-head" style="margin-bottom:10px">
+      <span class="pill lime">Mempool data</span><span class="price">5 sats / call</span>
+    </div>
+    <h2>Bitcoin fee estimates</h2>
+    <p class="section-sub">
+      The live next-block fee ladder: fastest, half-hour, hour, economy, minimum.
+      Upstream is the mempool.space public API. This is the data an agent needs
+      before it moves money.
+    </p>
+    <pre>GET https://sats402-receipts.vercel.app/api/services/fees
+→ 402  PAYMENT-REQUIRED: challenge (5 sats)
+→ 200  { "unit": "sat/vB", "fastest": 5, "half_hour": 4, "hour": 3, "economy": 2, "minimum": 1, "source": "mempool.space public API" }</pre>
+    <div class="cta">
+      <a class="btn btn-primary" href="/demo">Try it with the demo agent</a>
+      <a class="btn btn-ghost" href="/verify">Verify a receipt</a>
+    </div>
+  </div>
+
+  <div class="frame" id="network">
+    <div class="card-head" style="margin-bottom:10px">
+      <span class="pill peach">Network data</span><span class="price">5 sats / call</span>
+    </div>
+    <h2>Tachi network state</h2>
+    <p class="section-sub">
+      Settlement-layer state for the network the money moves on: ledger fee,
+      epoch height, network. Read live from the Tachi daemon with no cache. An
+      agent settles on Tachi, so this is the fee data that actually applies.
+    </p>
+    <pre>GET https://sats402-receipts.vercel.app/api/services/network
+→ 402  PAYMENT-REQUIRED: challenge (5 sats)
+→ 200  { "ledger_fee_sat": {"recommended_fee_sat": 1}, "epoch_height": "967207", "network": "tachi-regtest-1" }</pre>
+    <div class="cta">
+      <a class="btn btn-primary" href="/demo">Try it with the demo agent</a>
+      <a class="btn btn-ghost" href="/verify">Verify a receipt</a>
+    </div>
+  </div>
+
+  <div class="frame" id="inference">
+    <div class="card-head" style="margin-bottom:10px">
+      <span class="pill lav">Inference</span><span class="price">50 sats / call</span>
+    </div>
+    <h2>Grounded AI completion</h2>
+    <p class="section-sub">
+      A model call that is grounded in live data it bought itself. This service
+      is an agent with its own key and its own spend policy: it cannot answer
+      until it has paid the network data service for the facts the answer needs.
+      One request, two purchase types.
+    </p>
+    <pre>POST https://sats402-receipts.vercel.app/api/services/inference
+     { "question": "What is the recommended fee right now?" }
+→ 402  PAYMENT-REQUIRED: challenge (50 sats)
+→ 200  { "answer": "…", "paid_data": { … live data it bought … },
+         "data_purchase": { "amountSats": "5", "tx": "c9f3a97a…" } }</pre>
+    <div class="cta">
+      <a class="btn btn-primary" href="/demo">Try it with the demo agent</a>
+      <a class="btn btn-ghost" href="/verify">Verify a receipt</a>
+    </div>
+    <div class="note">
+      Inference runs server-side; the model key never reaches a browser. The
+      answer is only as good as the paid data behind it, and the data purchase
+      is a real settlement you can re-fetch.
+    </div>
+  </div>
+
+  <div class="frame">
+    <h2>Calling any endpoint</h2>
+    <p class="section-sub">Identical for all four. Any x402-style client can do this.</p>
+    <div class="steps">
+      <div class="step"><div class="n">1</div><p><b>Call</b> the endpoint. Read the price and the challenge from <code>PAYMENT-REQUIRED</code>.</p></div>
+      <div class="step"><div class="n">2</div><p><b>Pay</b> exactly the price: your agent signs and broadcasts its own <code>tachi_tx</code> to the payee in the challenge.</p></div>
+      <div class="step"><div class="n">3</div><p><b>Retry</b> with the proof in <code>PAYMENT-SIGNATURE</code>. The response arrives with <code>PAYMENT-RESPONSE</code> carrying the settlement id.</p></div>
+    </div>
+    <div class="note">
+      Prefer the SDK: <code>@sats402/agent</code> does all three steps and enforces
+      your spending policy. Services need only <code>@sats402/express</code> in
+      front of their handler.
+    </div>
+  </div>
+
+  <p class="foot">
+    Sats402 — SDK and protocol for x402 pay-per-request payments in native sats on Tachi.<br />
+    Every settlement is a tx id on Tachi: daemon-returned and re-fetchable.
+  </p>
+</div>
+
+</body>
+</html>

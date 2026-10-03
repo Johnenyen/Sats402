@@ -70,18 +70,21 @@ export default async function handler(req, res) {
   }
 
   const body = await readJson(req);
-  const target = body.target === 's2' ? 's2' : 's1';
+  const target = body.target === 'inference' || body.target === 's2' ? 'inference' : 'data';
 
   const identity = deriveIdentity(AGENT_MNEMONIC, 'regtest', 0);
   const s1 = deriveIdentity(S1_MNEMONIC, 'regtest', 0);
   const s2 = deriveIdentity(S2_MNEMONIC, 'regtest', 0);
-  const url = target === 's2' ? `${SELF}/api/s2/complete` : `${SELF}/api/s1/stats`;
+  const url =
+    target === 'inference'
+      ? `${SELF}/api/services/inference`
+      : `${SELF}/api/services/price`;
 
-  // Keep the demo self-healing: if S2's key is low, the agent tops it up so S2
-  // can keep buying facts. This is infrastructure, reported as such.
+  // Keep the demo self-healing: if the inference wallet is low, the agent tops
+  // it up so that service can keep buying data. Infrastructure, reported as such.
   let setupTopup = null;
   const s2Balance = await getSpendableSats(s2, DAEMON);
-  if (target === 's2' && s2Balance < 20n) {
+  if (target === 'inference' && s2Balance < 20n) {
     const tx = await settleTransfer({
       identity,
       recipientAddress: userAddressForXOnly(s2.xOnly),
@@ -106,9 +109,9 @@ export default async function handler(req, res) {
   try {
     // 1. The unpaid call: show the challenge the service issues.
     const init = {
-      method: target === 's2' ? 'POST' : 'GET',
-      headers: target === 's2' ? { 'content-type': 'application/json' } : {},
-      body: target === 's2' ? JSON.stringify({ question: body.question ?? '' }) : undefined,
+      method: target === 'inference' ? 'POST' : 'GET',
+      headers: target === 'inference' ? { 'content-type': 'application/json' } : {},
+      body: target === 'inference' ? JSON.stringify({ question: body.question ?? '' }) : undefined,
     };
     const probe = await fetch(url, init);
     const challenge = probe.headers.get('PAYMENT-REQUIRED')
@@ -135,7 +138,7 @@ export default async function handler(req, res) {
       JSON.stringify(
         {
           target,
-          price_sats: target === 's2' ? '50' : '5',
+          price_sats: target === 'inference' ? '50' : '5',
           challenge_seen: challenge
             ? {
                 price: challenge.accepts?.[0]?.amount,
