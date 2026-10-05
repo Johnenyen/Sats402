@@ -55,15 +55,6 @@
           <a class="cta-link" href="/services">Browse services →</a>
           <a class="cta-link" href="/verify">Verify a settlement →</a>
         </div>
-        <div class="hero-stat-row">
-          <div class="hero-stat-figure-col">
-            <div class="hero-stat-figure">20/20</div>
-            <div class="hero-stat-lbl">SETTLED ON-CHAIN</div>
-          </div>
-          <div class="hero-stat-desc">
-            <b>Request round-trip (what the agent sees):</b> sub-second to verify + serve; <b>5,492 ms p50</b> is on-chain settlement finality across 20 consecutive calls. Re-fetchable by anyone.
-          </div>
-        </div>
       </div>
 
       <div class="hero-aside">
@@ -93,9 +84,12 @@
               <span class="lbl">Scheme</span>
               <span class="val">exact · tachi_tx</span>
             </div>
-            <div class="receipt-field">
+            <div class="receipt-field receipt-field-latency">
               <span class="lbl">Latency</span>
-              <span class="val">sub-second serve · 5,492 ms finality</span>
+              <span class="val val-stack">
+                <span>sub-second serve</span>
+                <span class="val-sub">5,492 ms finality</span>
+              </span>
             </div>
           </div>
           <div class="receipt-foot">
@@ -103,6 +97,16 @@
             <a href="/verify?tx=378ba365e7d12db32e75f059998917626654c0c54d53375e0ed5dda6242066ef">Verify tx →</a>
           </div>
         </div>
+      </div>
+    </div>
+
+    <div class="hero-stat-row">
+      <div class="hero-stat-figure-col">
+        <div class="hero-stat-figure">20/20</div>
+        <div class="hero-stat-lbl">SETTLED ON-CHAIN</div>
+      </div>
+      <div class="hero-stat-desc">
+        <b>Request round-trip (what the agent sees):</b> sub-second to verify + serve; <b>5,492 ms p50</b> is on-chain settlement finality across 20 consecutive calls. Re-fetchable by anyone.
       </div>
     </div>
 
