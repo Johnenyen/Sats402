@@ -303,9 +303,12 @@ export async function settleTransfer(args: SettleArgs): Promise<SettlementResult
       throw new Error(`broadcast rejected: ${broadcast?.log || 'no transaction hash returned'}`);
     }
   } catch (err) {
-    for (const v of picked) {
-      releaseVtxo(v.id);
-    }
+    // Do NOT release the in-flight locks here. A network drop after the daemon
+    // admitted the transaction to its mempool means the VTXOs are already spent
+    // on-chain; releasing them would let an immediate retry re-select a consumed
+    // input and fail with "pending in mempool". Retain the locks and let the TTL
+    // clear them, matching the waitForTachiTxCommit error path below. A genuinely
+    // rejected broadcast costs only a temporary lock, never a double-select.
     throw err;
   }
 

@@ -67,13 +67,23 @@ export class FileReplayStore implements ReplayStore {
       mkdirSync(dirname(filePath), { recursive: true });
     }
   }
+  /** Re-read the file so sibling processes sharing it are seen (append-only). */
+  private refresh(): void {
+    if (!existsSync(this.filePath)) return;
+    for (const line of readFileSync(this.filePath, 'utf8').split('\n')) {
+      const key = line.trim();
+      if (key) this.seen.add(key);
+    }
+  }
   consume(key: string): boolean {
+    this.refresh();
     if (this.seen.has(key)) return false;
     this.seen.add(key);
     appendFileSync(this.filePath, `${key}\n`, 'utf8');
     return true;
   }
   has(key: string): boolean {
+    this.refresh();
     return this.seen.has(key);
   }
 }

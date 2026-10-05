@@ -54,3 +54,8 @@ for (const owner of check.inputOwners) {
 for (const note of check.notes) {
   console.log(`note: ${note}`);
 }
+// A failed --amount / --payee assertion must be a non-zero exit so CI pipelines
+// and scripts reading $? do not treat a failed check as success.
+if (check.notes.some((n) => /NOT MET|not met/i.test(n))) {
+  process.exit(1);
+}

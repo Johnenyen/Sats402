@@ -35,24 +35,18 @@ export function withCors(handler) {
 }
 
 /**
- * Derive public base URL from incoming request or environment variables.
- * Ensures consistent normalization across sats402.vercel.app and mirrors.
+ * Derive the public base URL for outbound self-requests from TRUSTED sources
+ * only (environment + Vercel deployment identity). Request headers (Host,
+ * X-Forwarded-Host) are deliberately NOT consulted: they are attacker-controlled
+ * and would let a crafted header redirect the server's outbound fetch to an
+ * arbitrary origin (blind SSRF). The x402 challenge URL is derived separately
+ * by requestUrl() in the paywall, which must reflect the caller's host.
  */
 export function getPublicBaseUrl(req) {
   if (process.env.SATS402_PUBLIC_URL) return process.env.SATS402_PUBLIC_URL.replace(/\/$/, '');
-  if (req) {
-    const forwardedProto = req.headers?.['x-forwarded-proto'];
-    const proto = (Array.isArray(forwardedProto) ? forwardedProto[0] : forwardedProto)?.split(',')[0]?.trim() || 'https';
-    const forwardedHost = req.headers?.['x-forwarded-host'];
-    const fHost = (Array.isArray(forwardedHost) ? forwardedHost[0] : forwardedHost)?.split(',')[0]?.trim();
-    if (fHost) return `${proto}://${fHost}`;
-    const rawHost = req.headers?.host;
-    const host = (Array.isArray(rawHost) ? rawHost[0] : rawHost)?.split(',')[0]?.trim();
-    if (host) return `${proto}://${host}`;
-  }
   if (process.env.VERCEL_PROJECT_PRODUCTION_URL) return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`;
   if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
-  return 'https://sats402-receipts.vercel.app';
+  return 'https://sats402.vercel.app';
 }
 
 /**
@@ -68,6 +62,15 @@ export function createReplayStore(serviceName) {
 
   if (kvUrl && kvToken) {
     const memory = new Set();
+    // Surface (once) a fall-back to in-process replay memory when the external
+    // KV store is unreachable, so a durability gap is never silent.
+    let kvWarned = false;
+    const warnKvDegraded = () => {
+      if (!kvWarned) {
+        kvWarned = true;
+        console.warn('[sats402] replay store: KV unreachable, degrading to in-process memory (replay protection is per-instance only)');
+      }
+    };
     return {
       async consume(key) {
         if (memory.has(key)) return false;
@@ -88,6 +91,7 @@ export function createReplayStore(serviceName) {
         } catch {
           // If external call fails, fall back to in-process memory
         }
+        warnKvDegraded();
         if (memory.has(key)) return false;
         memory.add(key);
         return true;

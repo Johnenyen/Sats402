@@ -36,6 +36,15 @@ export function buildBoundMessage(
   resourceUrl: string,
   txHash: string
 ): string {
+  // Canonicalize the resource URL so the signature is robust to trailing-slash,
+  // case, or default-port differences between signer and verifier. Falls back to
+  // the raw string if it is not a parseable absolute URL.
+  let resource = resourceUrl;
+  try {
+    resource = normalizeResourceUrl(resourceUrl);
+  } catch {
+    /* keep raw */
+  }
   return [
     BOUND_MESSAGE_TAG,
     `nonce:${authorization.nonce}`,
@@ -44,7 +53,7 @@ export function buildBoundMessage(
     `value:${accepted.amount}`,
     `to:${accepted.payTo}`,
     `network:${accepted.network}`,
-    `resource:${resourceUrl}`,
+    `resource:${resource}`,
     `tx:${txHash}`,
   ].join(':');
 }
