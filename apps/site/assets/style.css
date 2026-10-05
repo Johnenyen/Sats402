@@ -163,9 +163,48 @@ textarea.field { width: 100%; min-height: 130px; resize: vertical; }
 .p2 { background: var(--lavender); color: var(--accent-2); }
 .p3 { background: var(--peach); color: #9a3412; }
 
+/* Requirements page */
+.req-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; margin-bottom: 16px; }
+.req-meta { display: flex; flex-direction: column; gap: 6px; }
+.req-num { font-size: 52px; font-weight: 800; line-height: 1; letter-spacing: -0.04em; color: var(--accent); }
+.req-quote {
+  background: #faf9fd;
+  border-left: 4px solid var(--accent);
+  border-radius: 0 16px 16px 0;
+  padding: 16px 20px;
+  margin: 12px 0 24px;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--ink);
+  letter-spacing: -0.01em;
+  line-height: 1.5;
+}
+.req-section-title {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent-2);
+  margin: 22px 0 8px;
+}
+.req-desc { color: var(--ink); font-size: 14.5px; line-height: 1.65; margin: 0 0 14px; }
+.verify-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-top: 24px;
+  padding-top: 18px;
+  border-top: 1px solid #f0eef7;
+}
+.verify-row .btn { padding: 9px 15px; font-size: 13px; border-radius: 12px; }
+.verify-label { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin-right: 4px; }
+
 @media (max-width: 860px) {
   .g3, .g2, .proof-strip { grid-template-columns: 1fr; }
   h1 { font-size: 34px; }
   .frame { padding: 26px; }
   .nav { flex-direction: column; align-items: flex-start; }
+  .req-header { flex-direction: column-reverse; align-items: flex-start; gap: 8px; }
+  .req-num { font-size: 38px; }
 }
