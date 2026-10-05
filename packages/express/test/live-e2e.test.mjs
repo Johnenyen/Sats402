@@ -205,6 +205,7 @@ test('a replayed settlement is never charged again', async () => {
       payeeXOnly: payee.xOnly,
       network: NETWORK_TACHI_REGTEST,
       daemonUrl: DAEMON,
+      publicBaseUrl: baseUrl,
       resource: { url: '/s1/fee-estimate' },
       // A NEW instance on the same file: exactly what a process restart sees.
       replay: new FileReplayStore(sharedReplayStore.filePath),
@@ -215,14 +216,17 @@ test('a replayed settlement is never charged again', async () => {
     })(req, res)
   );
   await new Promise((resolve) => freshServer.listen(0, '127.0.0.1', resolve));
-  const freshUrl = `http://127.0.0.1:${freshServer.address().port}/s1/fee-estimate`;
-  const third = await fetch(freshUrl, { headers: { 'PAYMENT-SIGNATURE': header } });
-  assert.equal(third.status, 402);
-  const receipt = JSON.parse(
-    Buffer.from(third.headers.get('PAYMENT-RESPONSE'), 'base64').toString('utf8')
-  );
-  assert.equal(receipt.errorReason, 'replay_detected');
-  freshServer.close();
+  try {
+    const freshUrl = `http://127.0.0.1:${freshServer.address().port}/s1/fee-estimate`;
+    const third = await fetch(freshUrl, { headers: { 'PAYMENT-SIGNATURE': header } });
+    assert.equal(third.status, 402);
+    const receipt = JSON.parse(
+      Buffer.from(third.headers.get('PAYMENT-RESPONSE'), 'base64').toString('utf8')
+    );
+    assert.equal(receipt.errorReason, 'replay_detected');
+  } finally {
+    freshServer.close();
+  }
   console.log(JSON.stringify({
     replay: 'NEVER CHARGED TWICE',
     idempotentRetry: 'original response returned',

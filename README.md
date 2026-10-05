@@ -36,6 +36,31 @@ Settlement is a Tachi transaction on `tachi-regtest-1`.
    and settlement transaction hash, so a payment cannot be moved onto a different request.
 4. The service responds `200` with the resource (`PAYMENT-RESPONSE`).
 
+## Direct agent-to-agent payment: `agent.pay`
+
+For direct agent-to-agent settlement where one key-holder pays another without an HTTP 402 challenge loop:
+
+```typescript
+import { Sats402Agent } from '@sats402/agent';
+import { deriveIdentity } from '@sats402/core';
+
+const agent = new Sats402Agent({
+  identity: deriveIdentity(MNEMONIC, 'regtest', 0),
+  daemonUrl: 'https://rpc-regtest.tachibtc.com',
+  network: 'tachi:0f9188f13cb7b2c71f2a335e3a4fc328',
+  policy: { perCallCapSats: 60n, sessionBudgetSats: 400n, payeeAllowlist: [payeeXOnly] },
+});
+
+// Direct agent-to-agent settlement: one key-holder paying another, verified read-only
+const { txHash, receipt } = await agent.pay({
+  payeeXOnly,
+  amountSats: 50n,
+  memo: 'agent task completion',
+});
+```
+
+`agent.pay` enforces the same spend-policy checks as `fetch` (per-call cap, session budget, payee allowlist), settles native sats via `settleTransfer` (smallest-sufficient coin selection), and verifies the settlement read-only via `@sats402/verify`.
+
 ## Why Tachi
 
 x402 is the HTTP 402 "Payment Required" pattern for pay-per-request and

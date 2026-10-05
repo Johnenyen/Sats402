@@ -11,22 +11,9 @@
 import { Sats402Agent, getSpendableSats, ensureFunded, PolicyError } from '@sats402/agent';
 import { deriveIdentity, NETWORK_TACHI_REGTEST } from '@sats402/core';
 import { readJson } from '../_lib/readjson.mjs';
+import { getPublicBaseUrl } from '../_lib/services.mjs';
 
 const DAEMON = process.env.SATS402_DAEMON ?? 'https://rpc-regtest.tachibtc.com';
-
-function getSelfUrl(req) {
-  if (process.env.SATS402_PUBLIC_URL) return process.env.SATS402_PUBLIC_URL;
-  const origin = req.headers['origin'];
-  if (origin && typeof origin === 'string') return origin.replace(/\/$/, '');
-  const forwardedProto = req.headers['x-forwarded-proto'];
-  const proto = (Array.isArray(forwardedProto) ? forwardedProto[0] : forwardedProto)?.split(',')[0]?.trim() || 'https';
-  const forwardedHost = req.headers['x-forwarded-host'];
-  const host = (Array.isArray(forwardedHost) ? forwardedHost[0] : forwardedHost)?.split(',')[0]?.trim() || req.headers.host;
-  if (host) return `${proto}://${host}`;
-  if (process.env.VERCEL_PROJECT_PRODUCTION_URL) return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`;
-  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
-  return 'https://sats402.vercel.app';
-}
 
 const AGENT_MNEMONIC =
   process.env.SATS402_AGENT_MNEMONIC ??
@@ -84,7 +71,7 @@ export default async function handler(req, res) {
   }
 
   const body = await readJson(req);
-  const self = getSelfUrl(req);
+  const self = getPublicBaseUrl(req);
   const TARGETS = {
     data: { url: `${self}/api/services/price`, price: '5', post: false },
     fees: { url: `${self}/api/services/fees`, price: '5', post: false },
@@ -121,6 +108,7 @@ export default async function handler(req, res) {
       body: selected.post
         ? JSON.stringify({ question: body.question ?? '' })
         : undefined,
+      signal: AbortSignal.timeout(8000),
     };
     const probe = await fetch(url, init);
     const challenge = probe.headers.get('PAYMENT-REQUIRED')
@@ -137,9 +125,15 @@ export default async function handler(req, res) {
       : null;
 
     // 3. The independent re-fetch, straight from the daemon record endpoint.
-    const record = receipt?.transaction
-      ? await (await fetch(`${self}/receipt/${receipt.transaction}`)).json()
-      : null;
+    let record = null;
+    if (receipt?.transaction) {
+      try {
+        const recRes = await fetch(`${self}/receipt/${receipt.transaction}`, {
+          signal: AbortSignal.timeout(8000),
+        });
+        if (recRes.ok) record = await recRes.json();
+      } catch {}
+    }
 
     res.statusCode = 200;
     res.setHeader('content-type', 'application/json');

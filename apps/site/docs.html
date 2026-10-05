@@ -130,6 +130,14 @@ const agent = new Sats402Agent({
 });
 const res = await agent.fetch('https://sats402.vercel.app/api/services/price');
 // 402 handled, tachi_tx settled, proof retried. Product in res.</code></pre>
+      <p class="p"><b>Direct agent-to-agent payment (<code>agent.pay</code>)</b>:</p>
+      <pre><code>// Direct agent-to-agent settlement: one key-holder paying another, verified read-only
+const { txHash, receipt } = await agent.pay({
+  payeeXOnly: '99296e2fdf89f7249584f5572829f32e52e1e780e64743ed75601e7c6acf512e',
+  amountSats: 50n,
+  memo: 'agent task completion',
+});
+// Verified read-only: txHash is on-chain, policy checked, receipt returned.</code></pre>
       <div class="note">
         Runnable examples: <code>npm run demo:pay -- inference</code> (the agent
         on your machine) and <code>npm run cold-start</code> (the full recorded

@@ -7,7 +7,7 @@
 // cannot answer until it has bought the live network data the answer needs
 // (from /api/services/network, 5 sats). Two purchase types, one request.
 import { paywall } from '@sats402/express';
-import { Sats402Agent } from '@sats402/agent';
+import { Sats402Agent, ensureFunded } from '@sats402/agent';
 import { deriveIdentity, NETWORK_TACHI_REGTEST } from '@sats402/core';
 import { readJson } from '../_lib/readjson.mjs';
 import { withCors, getPublicBaseUrl, createReplayStore } from '../_lib/services.mjs';
@@ -72,6 +72,26 @@ const handle = paywall({
       .replace(/[\u0000-\u001f]/g, ' ');
 
     // CANNOT ANSWER UNTIL IT HAS BOUGHT the live data the answer needs.
+    // Best-effort pre-flight top-up: ensure inference service wallet is funded
+    try {
+      await ensureFunded(inference, DAEMON, 1000n, 10n);
+    } catch (topUpErr) {
+      console.warn('[inference] Pre-flight top-up failed or insufficient funds:', topUpErr?.message || topUpErr);
+      res.statusCode = 502;
+      res.setHeader('content-type', 'application/json');
+      res.end(
+        JSON.stringify(
+          {
+            error: 'wallet_funding_failed',
+            message: `Inference service wallet funding failed: ${String(topUpErr instanceof Error ? topUpErr.message : topUpErr)}`,
+          },
+          null,
+          2
+        )
+      );
+      return;
+    }
+
     const buyer = makeBuyer();
     const self = getPublicBaseUrl(req);
     const dataUrl = process.env.SATS402_DATA_URL ?? `${self}/api/services/network`;
@@ -134,6 +154,7 @@ const handle = paywall({
               },
             ],
           }),
+          signal: AbortSignal.timeout(8000),
         });
         const parsed = await completion.json().catch(() => ({}));
         const message = parsed?.choices?.[0]?.message ?? {};

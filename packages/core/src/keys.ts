@@ -55,6 +55,22 @@ export function userAddressForXOnly(xOnly: string, network = 'regtest'): string 
 }
 
 /**
+ * Decode a P2TR (bech32m) address to its 32-byte x-only hex public key.
+ */
+export function xOnlyFromAddress(address: string): string {
+  const dec = bech32m.decode(address as `${string}1${string}`);
+  if (dec.words[0] !== 1) {
+    throw new Error(`expected witness v1 (Taproot) address, got v${dec.words[0]}`);
+  }
+  const prog = bech32m.fromWords(dec.words.slice(1));
+  const hex = Array.from(prog, (b) => b.toString(16).padStart(2, '0')).join('');
+  if (!/^[0-9a-f]{64}$/.test(hex)) {
+    throw new Error(`invalid decoded x-only key length: ${hex.length}`);
+  }
+  return hex;
+}
+
+/**
  * Derive an identity from a BIP-39 mnemonic at the given receive index.
  * `network` is a Tachi network name understood by the TAURUS SDK (`regtest`).
  */

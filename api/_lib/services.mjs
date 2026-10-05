@@ -39,19 +39,20 @@ export function withCors(handler) {
  * Ensures consistent normalization across sats402.vercel.app and mirrors.
  */
 export function getPublicBaseUrl(req) {
-  if (process.env.SATS402_PUBLIC_URL) return process.env.SATS402_PUBLIC_URL;
+  if (process.env.SATS402_PUBLIC_URL) return process.env.SATS402_PUBLIC_URL.replace(/\/$/, '');
   if (req) {
-    const origin = req.headers?.origin;
-    if (origin && typeof origin === 'string') return origin.replace(/\/$/, '');
     const forwardedProto = req.headers?.['x-forwarded-proto'];
     const proto = (Array.isArray(forwardedProto) ? forwardedProto[0] : forwardedProto)?.split(',')[0]?.trim() || 'https';
     const forwardedHost = req.headers?.['x-forwarded-host'];
-    const host = (Array.isArray(forwardedHost) ? forwardedHost[0] : forwardedHost)?.split(',')[0]?.trim() || req.headers?.host;
+    const fHost = (Array.isArray(forwardedHost) ? forwardedHost[0] : forwardedHost)?.split(',')[0]?.trim();
+    if (fHost) return `${proto}://${fHost}`;
+    const rawHost = req.headers?.host;
+    const host = (Array.isArray(rawHost) ? rawHost[0] : rawHost)?.split(',')[0]?.trim();
     if (host) return `${proto}://${host}`;
   }
   if (process.env.VERCEL_PROJECT_PRODUCTION_URL) return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`;
   if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
-  return 'https://sats402.vercel.app';
+  return 'https://sats402-receipts.vercel.app';
 }
 
 /**
@@ -74,6 +75,7 @@ export function createReplayStore(serviceName) {
           const res = await fetch(`${kvUrl}/set/sats402:replay:${encodeURIComponent(key)}/consumed?nx=true`, {
             method: 'POST',
             headers: { Authorization: `Bearer ${kvToken}` },
+            signal: AbortSignal.timeout(8000),
           });
           if (res.ok) {
             const data = await res.json();
@@ -95,6 +97,7 @@ export function createReplayStore(serviceName) {
         try {
           const res = await fetch(`${kvUrl}/get/sats402:replay:${encodeURIComponent(key)}`, {
             headers: { Authorization: `Bearer ${kvToken}` },
+            signal: AbortSignal.timeout(8000),
           });
           if (res.ok) {
             const data = await res.json();

@@ -11,10 +11,7 @@
       "import": "./dist/index.js"
     }
   },
-  "bin": {
-    "sats402-verify": "./bin/verify.mjs"
-  },
-  "files": ["dist", "bin", "README.md"],
+  "files": ["dist", "README.md"],
   "license": "MIT",
   "scripts": {
     "build": "tsc -p tsconfig.json"

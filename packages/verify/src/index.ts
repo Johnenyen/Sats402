@@ -5,7 +5,9 @@
  * GET against the Tachi daemon. It reports what the daemon returns, nothing
  * more: the record is daemon-returned and re-fetchable.
  */
-import { fetchSettlement, type TachiTxRecord } from '@sats402/core/verify';
+import { fetchSettlement, verifySettlement, type TachiTxRecord } from '@sats402/core/verify';
+
+export { fetchSettlement, verifySettlement };
 
 export interface ReceiptCheck {
   /** The transaction hash as queried. */
