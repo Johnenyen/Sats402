@@ -386,15 +386,15 @@ export function paywall(opts: PaywallOptions) {
         return;
       }
 
-      // 6. Single use: consume now that the payment is proven.
-      if (key && !(await replay.consume(key))) {
-        sendRejected(res, opts, 'replay_detected', payer, req, txHash);
-        return;
-      }
-
-      // PAID: report the settlement, then serve the resource. The response is
-      // recorded under the bound cache key so a replay of this settlement returns
-      // the same response without a second charge.
+      // PAID: serve the resource first, then mark the settlement consumed only
+      // on successful delivery. Consuming before serve() would burn the payer's
+      // settled sats if the handler throws or returns an error (upstream failure):
+      // the key would be spent, no content cached, and every retry rejected as a
+      // replay. Replay of an already-consumed settlement is already blocked at
+      // step 4 (replay.has), so marking it consumed after serve is safe and never
+      // loses customer funds. The response is recorded under the bound cache key
+      // so a replay of this settlement returns the same response without a second
+      // charge.
       const response: SettlementResponse = {
         success: true,
         transaction: txHash,
@@ -404,7 +404,10 @@ export function paywall(opts: PaywallOptions) {
       const { res: capturedRes, capture } = recording(res);
       capturedRes.setHeader(HEADER_PAYMENT_RESPONSE, b64(response));
       await opts.serve(req, capturedRes);
-      if (cacheKey && capturedRes.statusCode < 400) remember(cacheKey, capture());
+      if (capturedRes.statusCode < 400) {
+        if (key) await replay.consume(key);
+        if (cacheKey) remember(cacheKey, capture());
+      }
     } finally {
       if (key) inFlight.delete(key);
     }
