@@ -24,10 +24,10 @@ body {
 
 /* Navigation */
 .nav {
-  position: sticky; top: 14px; z-index: 50;
-  width: auto; margin: 14px 16px 0; padding: 10px 12px 10px 22px;
+  position: sticky; top: 0; z-index: 50;
+  width: auto; margin: 0; padding: 12px 18px;
   background: rgba(255,255,255,0.92); backdrop-filter: blur(10px);
-  border-radius: 18px; box-shadow: 0 12px 34px rgba(28,27,34,0.08);
+  border-radius: 0; box-shadow: none; border-bottom: 1px solid #e7e3f2;
   display: flex; align-items: center; justify-content: space-between; gap: 16px;
 }
 .brand {
@@ -64,13 +64,14 @@ body {
 }
 
 /* Layout */
-.wrap { width: auto; max-width: none; margin: 0 16px; padding: 20px 4px 80px; }
+.wrap { width: auto; max-width: none; margin: 0; padding: 14px 0 60px; }
 .frame {
   background: var(--card);
-  border-radius: 26px;
-  box-shadow: 0 24px 60px rgba(28, 27, 34, 0.08);
-  padding: 40px;
-  margin-top: 26px;
+  border-radius: 0;
+  box-shadow: none;
+  border-bottom: 1px solid #ece9f5;
+  padding: 44px 48px;
+  margin-top: 0;
 }
 h1 { font-size: 46px; line-height: 1.05; letter-spacing: -0.03em; margin: 22px 0 14px; font-weight: 800; }
 h1 .grad { background: linear-gradient(92deg, var(--accent), var(--accent-2)); -webkit-background-clip: text; background-clip: text; color: transparent; }
