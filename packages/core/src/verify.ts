@@ -65,7 +65,8 @@ export function verifyPayment(payload: PaymentPayload, nowSeconds?: number): Ver
 
   // Signature over the full challenge: substitution defense.
   const resourceUrl = payload.resource?.url ?? '';
-  const message = buildBoundMessage(accepted, a, resourceUrl);
+  const txHash = payload.payload?.settlement?.txHash ?? '';
+  const message = buildBoundMessage(accepted, a, resourceUrl, txHash);
   const digest = sha256(new TextEncoder().encode(message));
   const sig = hexToBytes(p.signature);
   const pub = hexToBytes(a.from);
@@ -82,13 +83,19 @@ export class SettlementLookupError extends Error {
   }
 }
 
+/** Minimal input resolution info. */
+interface ResolvedInput {
+  owner: string;
+  amount?: string;
+}
+
 /**
  * Read the daemon for the settlement transaction. Read-only.
  * GET <daemonUrl>/tachi_search?q=<txHash>
  *
  * The daemon returns `{ type: "tx", result: { txHash, state, vin, vout } }`.
  * Input records reference the spent outputs as `txid` + `vout` index and carry
- * no owner field, so this resolves each input's owner from the referenced
+ * no owner field, so this resolves each input's owner and amount from the referenced
  * record (additional read-only GETs). Lookups retry on transient failure and
  * throw {@link SettlementLookupError} rather than silently reporting an empty
  * owner, which would wrongly reject a valid payment.
@@ -103,10 +110,14 @@ export async function fetchSettlement(
   if (!t) return null;
 
   const vin: TachiTxRecord['vin'] = await Promise.all(
-    ((t.vin ?? []) as Array<{ vtxo_id?: string; txid?: string; vout?: number }>).map(async (v) => ({
-      owner: await resolveInputOwner(base, v.vtxo_id ?? v.txid ?? '', v.vout ?? 0, fetchImpl),
-      vtxoId: v.vtxo_id,
-    }))
+    ((t.vin ?? []) as Array<{ vtxo_id?: string; txid?: string; vout?: number; value_sats?: unknown }>).map(async (v) => {
+      const resolved = await resolveInputInfo(base, v.vtxo_id ?? v.txid ?? '', v.vout ?? 0, fetchImpl, v.value_sats);
+      return {
+        owner: resolved.owner,
+        amount: resolved.amount,
+        vtxoId: v.vtxo_id,
+      };
+    })
   );
 
   return {
@@ -137,19 +148,21 @@ async function fetchTx(
 }
 
 /**
- * Resolve the owner of a spent input. The daemon serves two record shapes from
+ * Resolve the owner and amount of a spent input. The daemon serves two record shapes from
  * `tachi_search`: `vtxo` records carry `Owner` as base64 of the 32-byte x-only
  * key; `tx` records carry output owners as hex. Both are read-only GETs.
  * Transient failures retry, then throw SettlementLookupError: a lookup failure
  * must never masquerade as "payer does not own inputs".
  */
-async function resolveInputOwner(
+async function resolveInputInfo(
   base: string,
   ref: string,
   voutIndex: number,
   fetchImpl: typeof fetch,
+  valueSatsHint?: unknown,
   attempts = 3
-): Promise<string> {
+): Promise<ResolvedInput> {
+  const hintAmount = valueSatsHint !== undefined && valueSatsHint !== null ? String(valueSatsHint) : undefined;
   let lastError = '';
   for (let attempt = 1; attempt <= attempts; attempt++) {
     try {
@@ -160,18 +173,23 @@ async function resolveInputOwner(
       }
       const body = (await res.json()) as {
         type?: string;
-        result?: Record<string, unknown> & { vout?: Array<{ owner?: string }> };
+        result?: Record<string, unknown> & { Amount?: unknown; vout?: Array<{ owner?: string; amount?: unknown }> };
       };
       const r = body?.result;
-      if (!r) return ''; // genuinely no record: not a lookup failure
+      if (!r) return { owner: '', amount: hintAmount };
       if (body.type === 'vtxo') {
         const owner = (r as { Owner?: string }).Owner;
-        return owner ? Buffer.from(owner, 'base64').toString('hex').toLowerCase() : '';
+        const ownerHex = owner ? Buffer.from(owner, 'base64').toString('hex').toLowerCase() : '';
+        const amount = r.Amount !== undefined && r.Amount !== null ? String(r.Amount) : hintAmount;
+        return { owner: ownerHex, amount };
       }
       if (body.type === 'tx') {
-        return (r.vout?.[voutIndex]?.owner ?? '').toLowerCase();
+        const out = r.vout?.[voutIndex];
+        const owner = (out?.owner ?? '').toLowerCase();
+        const amount = out?.amount !== undefined && out?.amount !== null ? String(out.amount) : hintAmount;
+        return { owner, amount };
       }
-      return '';
+      return { owner: '', amount: hintAmount };
     } catch (err) {
       lastError = String(err instanceof Error ? err.message : err);
     }
@@ -185,7 +203,7 @@ async function resolveInputOwner(
  * Verify the settlement against daemon state:
  * the transaction exists, is committed, is the transaction the payload names,
  * its outputs include at least `value` sats owned by the payee, and the payer
- * owns the spent inputs.
+ * owns the spent inputs that fund the payment.
  */
 export function verifySettlement(payload: PaymentPayload, tx: TachiTxRecord | null): VerifyResult {
   if (!tx) return fail(ErrorCode.SETTLEMENT_NOT_FOUND, 'daemon returned no such transaction');
@@ -207,8 +225,23 @@ export function verifySettlement(payload: PaymentPayload, tx: TachiTxRecord | nu
     return fail(ErrorCode.SETTLEMENT_INSUFFICIENT, `outputs to payee total ${paidToPayee}, need ${a.value}`);
   }
 
-  const payerOwnsInputs = tx.vin.some((i) => i.owner === a.from);
-  if (!payerOwnsInputs) return fail(ErrorCode.INVALID_PAYMENT_PAYLOAD, 'payer does not own spent inputs');
+  const payerInputs = tx.vin.filter((i) => i.owner === a.from);
+  if (payerInputs.length === 0) {
+    return fail(ErrorCode.INVALID_PAYMENT_PAYLOAD, 'payer does not own spent inputs');
+  }
+
+  const hasAmounts = payerInputs.every((i) => i.amount !== undefined && i.amount !== '');
+  if (hasAmounts) {
+    const payerInputTotal = payerInputs.reduce((sum, i) => sum + BigInt(i.amount!), 0n);
+    if (payerInputTotal < BigInt(a.value)) {
+      return fail(ErrorCode.INVALID_PAYMENT_PAYLOAD, `payer inputs total ${payerInputTotal}, need ${a.value}`);
+    }
+  } else {
+    const allOwnedByPayer = tx.vin.every((i) => i.owner === a.from);
+    if (!allOwnedByPayer) {
+      return fail(ErrorCode.INVALID_PAYMENT_PAYLOAD, 'payer does not own all spent inputs');
+    }
+  }
 
   return { ok: true };
 }

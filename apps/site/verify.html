@@ -66,20 +66,20 @@
     <p class="section-sub">
       One command. The same read-only check this page runs.
     </p>
-    <pre>npx sats402 verify &lt;txid&gt;
+    <pre>node packages/cli/bin/sats402.mjs verify &lt;txid&gt;
 
-settlement   37dd13293cf5fc6d…c86fe3a
+settlement   99296e2fdf89f7249584f5572829f32e52e1e780e64743ed75601e7c6acf512e
 state        committed   (daemon-returned)
-epoch        967206
+epoch        967603
 outputs
   6267b312b2ff30bf…a7702338f  5 sats
-  e7ab2537b5d49e97…a0b4f9c319  588 sats
+  55164f8d101788f3…8d3b00eb   58 sats
 spent inputs
-  e7ab2537b5d49e97…a0b4f9c319
+  55164f8d101788f3…8d3b00eb
 note: Record is daemon-returned and re-fetchable: anyone can repeat this lookup.</pre>
     <div class="note">
       Until the <code>sats402</code> package is published to npm, run it from a
-      checkout: <code>npm run verify -- &lt;txid&gt;</code>.
+      checkout: <code>node packages/cli/bin/sats402.mjs verify &lt;txid&gt;</code>.
     </div>
   </div>
 

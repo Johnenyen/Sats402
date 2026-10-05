@@ -67,7 +67,11 @@ export function startS1({ identity, priceSats = 5n }) {
 
 /** S2: paid inference. Buys its fact from S1 before answering. */
 export function startS2({ identity, s1Url, s1PayeeXOnly, priceSats = 50n, model, apiKey }) {
-  if (!apiKey) throw new Error('S2 needs XKIRO_API_KEY in the server environment');
+  if (!apiKey) {
+    console.log(
+      '[services] Note: XKIRO_API_KEY is not set; falling back to deterministic local completion (payment flows still execute real settlements)'
+    );
+  }
 
   // S2 is itself an agent: its own key, its own spend policy, its own payments.
   const s2Agent = new Sats402Agent({
@@ -96,49 +100,64 @@ export function startS2({ identity, s1Url, s1PayeeXOnly, priceSats = 50n, model,
 
       // S2 CANNOT ANSWER UNTIL IT HAS PAID S1 for the live fact.
       const factRes = await s2Agent.fetch(s1Url);
+      if (!factRes.ok) {
+        res.statusCode = 502;
+        res.setHeader('content-type', 'application/json');
+        res.end(JSON.stringify({ error: 'failed to purchase fact from S1' }));
+        return;
+      }
       const fact = await factRes.json();
       const factReceipt = JSON.parse(
         Buffer.from(factRes.headers.get('PAYMENT-RESPONSE'), 'base64').toString('utf8')
       );
 
-      const completion = await fetch(XKIRO_URL, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${apiKey}`,
-          'Content-Type': 'application/json',
-          'User-Agent': BROWSER_UA,
-        },
-        body: JSON.stringify({
-          model,
-          max_tokens: 300,
-          messages: [
-            {
-              role: 'system',
-              content:
-                'You are a Tachi network analyst. Answer in under 80 words. Use only the paid live data provided.',
+      let answer;
+      if (!apiKey) {
+        answer = `[Deterministic local completion: XKIRO_API_KEY not set] Grounded live fact at epoch ${fact?.epoch ?? 'unknown'}: recommended fee is ${fact?.fee_estimate_sat ?? 1} sat/vB (min/avg/rec: ${fact?.min_fee_sat ?? 1}/${fact?.avg_fee_sat ?? 1}/${fact?.recommended_fee_sat ?? 1} sats). S2 bought this fact from S1 for 5 sats before answering.`;
+      } else {
+        try {
+          const completion = await fetch(XKIRO_URL, {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${apiKey}`,
+              'Content-Type': 'application/json',
+              'User-Agent': BROWSER_UA,
             },
-            {
-              role: 'user',
-              content: `Question: ${body.question ?? ''}\nPaid live daemon data: ${JSON.stringify(fact)}`,
-            },
-          ],
-        }),
-      });
-      const parsed = await completion.json();
-      const message = parsed?.choices?.[0]?.message ?? {};
-      // Some models return reasoning first; fall back to it rather than show
-      // nothing. The default demo model answers directly in `content`.
-      const answer =
-        message.content ||
-        message.reasoning_content ||
-        `completion unavailable (${completion.status})`;
+            body: JSON.stringify({
+              model,
+              max_tokens: 300,
+              messages: [
+                {
+                  role: 'system',
+                  content:
+                    'You are a Tachi network analyst. Answer in under 80 words. Use only the paid live data provided.',
+                },
+                {
+                  role: 'user',
+                  content: `Question: ${body.question ?? ''}\nPaid live daemon data: ${JSON.stringify(fact)}`,
+                },
+              ],
+            }),
+          });
+          const parsed = await completion.json().catch(() => ({}));
+          const message = parsed?.choices?.[0]?.message ?? {};
+          // Some models return reasoning first; fall back to it rather than show
+          // nothing. The default demo model answers directly in `content`.
+          answer =
+            message.content ||
+            message.reasoning_content ||
+            `completion unavailable (${completion.status})`;
+        } catch (err) {
+          answer = `[Local fallback] Grounded in paid fact: recommended fee is ${fact?.fee_estimate_sat ?? 1} sat/vB at epoch ${fact?.epoch ?? 'unknown'}.`;
+        }
+      }
 
       res.statusCode = 200;
       res.setHeader('content-type', 'application/json');
       res.end(
         JSON.stringify({
           answer,
-          model,
+          model: apiKey ? model : 'deterministic-local-fallback',
           paid_fact: fact,
           s1_payment: {
             what: 'buy the fact',

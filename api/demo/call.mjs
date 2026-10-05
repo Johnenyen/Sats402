@@ -8,13 +8,26 @@
 //
 // Guarded: per-IP rate limit (the wallet is real and finite) and a fixed
 // outbound origin (no Host-header SSRF).
-import { Sats402Agent, getSpendableSats, PolicyError } from '@sats402/agent';
+import { Sats402Agent, getSpendableSats, ensureFunded, PolicyError } from '@sats402/agent';
 import { deriveIdentity, NETWORK_TACHI_REGTEST } from '@sats402/core';
 import { readJson } from '../_lib/readjson.mjs';
 
 const DAEMON = process.env.SATS402_DAEMON ?? 'https://rpc-regtest.tachibtc.com';
-// Fixed outbound origin: never built from the request Host header.
-const SELF = process.env.SATS402_PUBLIC_URL ?? 'https://sats402.vercel.app';
+
+function getSelfUrl(req) {
+  if (process.env.SATS402_PUBLIC_URL) return process.env.SATS402_PUBLIC_URL;
+  const origin = req.headers['origin'];
+  if (origin && typeof origin === 'string') return origin.replace(/\/$/, '');
+  const forwardedProto = req.headers['x-forwarded-proto'];
+  const proto = (Array.isArray(forwardedProto) ? forwardedProto[0] : forwardedProto)?.split(',')[0]?.trim() || 'https';
+  const forwardedHost = req.headers['x-forwarded-host'];
+  const host = (Array.isArray(forwardedHost) ? forwardedHost[0] : forwardedHost)?.split(',')[0]?.trim() || req.headers.host;
+  if (host) return `${proto}://${host}`;
+  if (process.env.VERCEL_PROJECT_PRODUCTION_URL) return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`;
+  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
+  return 'https://sats402.vercel.app';
+}
+
 const AGENT_MNEMONIC =
   process.env.SATS402_AGENT_MNEMONIC ??
   'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about';
@@ -71,11 +84,12 @@ export default async function handler(req, res) {
   }
 
   const body = await readJson(req);
+  const self = getSelfUrl(req);
   const TARGETS = {
-    data: { url: `${SELF}/api/services/price`, price: '5', post: false },
-    fees: { url: `${SELF}/api/services/fees`, price: '5', post: false },
-    network: { url: `${SELF}/api/services/network`, price: '5', post: false },
-    inference: { url: `${SELF}/api/services/inference`, price: '50', post: true },
+    data: { url: `${self}/api/services/price`, price: '5', post: false },
+    fees: { url: `${self}/api/services/fees`, price: '5', post: false },
+    network: { url: `${self}/api/services/network`, price: '5', post: false },
+    inference: { url: `${self}/api/services/inference`, price: '50', post: true },
   };
   const target = TARGETS[body.target] ? body.target : 'data';
   const selected = TARGETS[target];
@@ -84,6 +98,9 @@ export default async function handler(req, res) {
   const dataService = deriveIdentity(DATA_MNEMONIC, 'regtest', 0);
   const inferenceService = deriveIdentity(INFERENCE_MNEMONIC, 'regtest', 0);
   const url = selected.url;
+
+  // Pre-flight funding: ensure wallet has sufficient sats before paying
+  await ensureFunded(identity, DAEMON, 500n, BigInt(selected.price) + 2n);
 
   const agent = new Sats402Agent({
     identity,
@@ -121,7 +138,7 @@ export default async function handler(req, res) {
 
     // 3. The independent re-fetch, straight from the daemon record endpoint.
     const record = receipt?.transaction
-      ? await (await fetch(`${SELF}/receipt/${receipt.transaction}`)).json()
+      ? await (await fetch(`${self}/receipt/${receipt.transaction}`)).json()
       : null;
 
     res.statusCode = 200;
@@ -159,7 +176,7 @@ export default async function handler(req, res) {
             ),
           },
           verify_command: receipt?.transaction
-            ? `npx sats402 verify ${receipt.transaction}`
+            ? `node packages/cli/bin/sats402.mjs verify ${receipt.transaction}`
             : null,
         },
         null,

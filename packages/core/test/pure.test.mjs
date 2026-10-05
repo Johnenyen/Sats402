@@ -63,14 +63,29 @@ test('a formed payment passes verification', () => {
   assert.equal(r.ok, true, JSON.stringify(r));
 });
 
-test('bound message contains every challenge field', () => {
+test('bound message contains every challenge field and txHash', () => {
   const p = form();
-  const msg = buildBoundMessage(p.accepted, p.payload.authorization, p.resource.url);
+  const msg = buildBoundMessage(
+    p.accepted,
+    p.payload.authorization,
+    p.resource.url,
+    p.payload.settlement.txHash
+  );
+  assert.ok(msg.startsWith('sats402-exact-tachi:v2'));
   assert.ok(msg.includes(`value:${p.accepted.amount}`));
   assert.ok(msg.includes(`to:${p.accepted.payTo}`));
   assert.ok(msg.includes(`network:${p.accepted.network}`));
   assert.ok(msg.includes(`resource:${p.resource.url}`));
   assert.ok(msg.includes(`nonce:${p.payload.authorization.nonce}`));
+  assert.ok(msg.includes(`tx:${p.payload.settlement.txHash}`));
+});
+
+test('SUBSTITUTION: same signature, different txHash, must fail', () => {
+  const p = form();
+  p.payload.settlement.txHash = 'b'.repeat(64);
+  const r = verifyPayment(p, NOW);
+  assert.equal(r.ok, false);
+  assert.equal(r.error, ErrorCode.INVALID_SIGNATURE);
 });
 
 test('SUBSTITUTION: same signature, different amount, must fail', () => {
@@ -160,6 +175,26 @@ test('settlement verification is read-only and strict', () => {
   assert.equal(verifySettlement(p, wrongPayer).error, ErrorCode.INVALID_PAYMENT_PAYLOAD);
 
   assert.equal(verifySettlement(p, null).error, ErrorCode.SETTLEMENT_NOT_FOUND);
+
+  // Loose input ownership rejection: payer contributed only 1 sat on a 50 sat payment
+  const loosePayer = {
+    ...good,
+    vin: [
+      { owner: payer.xOnly, amount: '1' },
+      { owner: payeeXOnly, amount: '100' },
+    ],
+  };
+  assert.equal(verifySettlement(p, loosePayer).error, ErrorCode.INVALID_PAYMENT_PAYLOAD);
+
+  // Sufficient input ownership: payer contributed 50 sats
+  const fundedPayer = {
+    ...good,
+    vin: [
+      { owner: payer.xOnly, amount: '50' },
+      { owner: payeeXOnly, amount: '50' },
+    ],
+  };
+  assert.equal(verifySettlement(p, fundedPayer).ok, true);
 });
 
 test('replay key is network:txhash, lowercase, colon-joined', () => {

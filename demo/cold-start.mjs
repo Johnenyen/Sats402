@@ -10,7 +10,7 @@
 // Everything is real: live daemon data, real inference, real settlements.
 // Demo keys are the public BIP-39 test vectors (fixtures, not secrets).
 import { deriveIdentity, formPayment, NETWORK_TACHI_REGTEST } from '@sats402/core';
-import { Sats402Agent, settleTransfer, getSpendableSats, PolicyError } from '@sats402/agent';
+import { Sats402Agent, settleTransfer, getSpendableSats, ensureFunded, PolicyError } from '@sats402/agent';
 import { verifyReceipt } from '@sats402/verify';
 import { startS1, startS2 } from './services.mjs';
 
@@ -38,6 +38,12 @@ async function main() {
   const agent = deriveIdentity(AGENT_MNEMONIC, 'regtest', 0);
   const s1 = deriveIdentity(S1_MNEMONIC, 'regtest', 0);
   const s2 = deriveIdentity(S2_MNEMONIC, 'regtest', 0);
+
+  // ---- PRE-FLIGHT FUNDING (drain protection) -------------------------
+  line(`[wallet] Checking demo agent wallet balance (${agent.userAddress})...`);
+  const agentBalance = await ensureFunded(agent, DAEMON, 1000n, 180n);
+  line(`[wallet] Agent balance: ${agentBalance} sats (pre-flight check passed)`);
+  line('');
 
   // ---- SETUP (one-time, not part of the payment story) ----------------
   const s2Funds = await getSpendableSats(s2, DAEMON);
@@ -113,7 +119,7 @@ async function main() {
   line('  every record is daemon-returned and re-fetchable');
   line('');
 
-  // ---- BURST: high-velocity proof ------------------------------------
+  // ---- BURST: 20-call settlement benchmark (measured latency) --------
   line('[burst] 20 paid S1 calls, live counter, measured latency');
   const latencies = [];
   const burstTxIds = [];

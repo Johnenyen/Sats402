@@ -6,15 +6,13 @@
 // This service is itself an agent with its own key and spend policy: it
 // cannot answer until it has bought the live network data the answer needs
 // (from /api/services/network, 5 sats). Two purchase types, one request.
-import { paywall, FileReplayStore } from '@sats402/express';
+import { paywall } from '@sats402/express';
 import { Sats402Agent } from '@sats402/agent';
 import { deriveIdentity, NETWORK_TACHI_REGTEST } from '@sats402/core';
 import { readJson } from '../_lib/readjson.mjs';
-import { withCors } from '../_lib/services.mjs';
+import { withCors, getPublicBaseUrl, createReplayStore } from '../_lib/services.mjs';
 
 const DAEMON = process.env.SATS402_DAEMON ?? 'https://rpc-regtest.tachibtc.com';
-const SELF = process.env.SATS402_PUBLIC_URL ?? 'https://sats402.vercel.app';
-const DATA_URL = process.env.SATS402_DATA_URL ?? `${SELF}/api/services/network`;
 const XKIRO_URL =
   process.env.SATS402_XKIRO_URL ?? 'https://api.xkiro.com/v1/chat/completions';
 const MODEL = process.env.SATS402_MODEL ?? 'mistralai/ministral-14b';
@@ -59,7 +57,8 @@ const handle = paywall({
   payeeXOnly: inference.xOnly,
   network: NETWORK_TACHI_REGTEST,
   daemonUrl: DAEMON,
-  replay: new FileReplayStore('/tmp/sats402-replay-inference.jsonl'),
+  publicBaseUrl: (req) => getPublicBaseUrl(req),
+  replay: createReplayStore('inference'),
   maxTimeoutSeconds: 120,
   resource: {
     description: 'A paid AI completion grounded in live Bitcoin and Tachi data',
@@ -74,17 +73,37 @@ const handle = paywall({
 
     // CANNOT ANSWER UNTIL IT HAS BOUGHT the live data the answer needs.
     const buyer = makeBuyer();
-    let paidData = {};
-    let dataReceipt = { transaction: 'n/a' };
+    const self = getPublicBaseUrl(req);
+    const dataUrl = process.env.SATS402_DATA_URL ?? `${self}/api/services/network`;
+
+    let paidData;
+    let dataReceipt;
     try {
-      const dataRes = await buyer.fetch(DATA_URL);
+      const dataRes = await buyer.fetch(dataUrl);
+      if (!dataRes.ok) {
+        throw new Error(`grounding data purchase returned HTTP ${dataRes.status}`);
+      }
       paidData = await dataRes.json();
       const dataReceiptRaw = dataRes.headers.get('PAYMENT-RESPONSE');
-      dataReceipt = dataReceiptRaw ? b64(dataReceiptRaw) : { transaction: 'n/a' };
+      dataReceipt = dataReceiptRaw ? b64(dataReceiptRaw) : null;
+      if (!dataReceipt?.transaction || dataReceipt.transaction === 'n/a') {
+        throw new Error('grounding data purchase produced no settlement transaction');
+      }
     } catch (err) {
-      paidData = {
-        data_purchase_failed: String(err instanceof Error ? err.message : err),
-      };
+      // Fail closed: do NOT charge 50 sats and return 200 when grounding data buy fails.
+      res.statusCode = 502;
+      res.setHeader('content-type', 'application/json');
+      res.end(
+        JSON.stringify(
+          {
+            error: 'settlement_failed',
+            message: `Grounding data could not be purchased: ${String(err instanceof Error ? err.message : err)}`,
+          },
+          null,
+          2
+        )
+      );
+      return;
     }
 
     const apiKey = process.env.XKIRO_API_KEY ?? '';

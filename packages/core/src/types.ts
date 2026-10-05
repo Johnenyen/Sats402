@@ -27,7 +27,7 @@ export const NETWORK_TACHI_REGTEST =
   'tachi:0f9188f13cb7b2c71f2a335e3a4fc328' as const;
 
 /** Domain-separation tag for the bound-message signature. */
-export const BOUND_MESSAGE_TAG = 'sats402-exact-tachi:v1' as const;
+export const BOUND_MESSAGE_TAG = 'sats402-exact-tachi:v2' as const;
 
 /**
  * Tachi network name for a CAIP-2 network id (the TAURUS SDK network name).
@@ -154,7 +154,7 @@ export interface VerifyResult {
 export interface TachiTxRecord {
   hash: string;
   state: string;
-  vin: Array<{ owner: string; vtxoId?: string }>;
+  vin: Array<{ owner: string; vtxoId?: string; amount?: string }>;
   vout: Array<{ owner: string; amount: string }>;
   blockhash?: string;
   epoch?: number;

@@ -67,6 +67,74 @@ export async function getSpendableSats(identity: Identity, daemonUrl: string): P
     .reduce((sum, v) => sum + v.amountSats, 0n);
 }
 
+export interface FaucetResult {
+  ok: boolean;
+  txid?: string;
+  error?: string;
+}
+
+/** Top up an address from the live Tachi faucet (up to 0.5 BTC per 24h). */
+export async function topUpFromFaucet(
+  address: string,
+  amountBtc = 0.001,
+  faucetUrl = 'https://faucet.tachibtc.com'
+): Promise<FaucetResult> {
+  try {
+    const res = await fetch(`${faucetUrl.replace(/\/$/, '')}/api/faucet`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        address: address.trim(),
+        amountBtc,
+        proof: null,
+      }),
+    });
+    if (!res.ok) {
+      const text = await res.text().catch(() => '');
+      return { ok: false, error: `faucet HTTP ${res.status}: ${text}` };
+    }
+    const body = (await res.json()) as { txid?: string; error?: string };
+    if (body.txid) return { ok: true, txid: body.txid };
+    return { ok: false, error: body.error ?? 'no txid returned' };
+  } catch (err) {
+    return { ok: false, error: String(err instanceof Error ? err.message : err) };
+  }
+}
+
+/**
+ * Pre-flight funding step: check wallet balance and top up from the live Tachi faucet
+ * when balance is below threshold. Prints a clear balance warning before the run and
+ * never fails silently on insufficient funds.
+ */
+export async function ensureFunded(
+  identity: Identity,
+  daemonUrl: string,
+  thresholdSats = 1000n,
+  minRequiredSats = 180n
+): Promise<bigint> {
+  let balance = await getSpendableSats(identity, daemonUrl);
+  if (balance < thresholdSats) {
+    console.warn(
+      `[wallet warning] Demo wallet balance (${balance} sats) is below threshold (${thresholdSats} sats). Topping up from live Tachi faucet...`
+    );
+    const topUp = await topUpFromFaucet(identity.userAddress);
+    if (topUp.ok) {
+      console.log(`[wallet] Faucet top-up broadcast: ${topUp.txid}`);
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+      balance = await getSpendableSats(identity, daemonUrl);
+    } else {
+      console.warn(`[wallet] Faucet top-up failed: ${topUp.error}`);
+    }
+  }
+
+  if (balance < minRequiredSats) {
+    throw new Error(
+      `Insufficient funds: demo wallet has ${balance} sats, need at least ${minRequiredSats} sats. Top up ${identity.userAddress} at https://faucet.tachibtc.com.`
+    );
+  }
+  return balance;
+}
+
 /**
  * Vault CSV delay used when reconstructing a vault. A construction constant:
  * it must match the value the vault was created with or the reconstructed

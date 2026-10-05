@@ -114,7 +114,7 @@
      { "question": "What is the recommended fee right now?" }
 → 402  PAYMENT-REQUIRED: challenge (50 sats)
 → 200  { "answer": "…", "paid_data": { … live data it bought … },
-         "data_purchase": { "amountSats": "5", "tx": "c9f3a97a…" } }</pre>
+         "data_purchase": { "amountSats": "5", "tx": "99296e2fdf89f724…" } }</pre>
     <div class="cta">
       <a class="btn btn-primary" href="/demo?target=inference">Try it with the demo agent</a>
       <a class="btn btn-ghost" href="/verify">Verify a receipt</a>
@@ -141,8 +141,10 @@
       machine-readably: <a href="/services.json">services.json</a> lists every
       service with its price and category, and the full
       <a href="/openapi.json">OpenAPI 3.1 spec</a> describes the contracts.
-      The paywall guards rendered content too:
-      <a href="/api/protected">protected page example</a> (5 sats per view).
+      The paywall guards rendered content too: <code>GET /api/protected</code>
+      (5 sats per view; an agent receives the 402 challenge, settles on Tachi,
+      and retries with <code>PAYMENT-SIGNATURE</code> to receive the HTML page, or run
+      <code>node packages/cli/bin/sats402.mjs verify &lt;txid&gt;</code> to verify).
     </div>
   </div>
 

@@ -9,7 +9,7 @@
 // This is the same SDK the hosted demo uses: it receives the 402 challenge,
 // checks the spending policy, settles with its own key (a real tachi_tx), and
 // retries with the proof. Set SATS402_AGENT_MNEMONIC to use your own key.
-import { Sats402Agent, getSpendableSats } from '@sats402/agent';
+import { Sats402Agent, getSpendableSats, ensureFunded } from '@sats402/agent';
 import { deriveIdentity, NETWORK_TACHI_REGTEST } from '@sats402/core';
 
 const SELF = process.env.SATS402_PUBLIC_URL ?? 'https://sats402.vercel.app';
@@ -46,7 +46,8 @@ const agent = new Sats402Agent({
 
 console.log(`sats402 demo agent`);
 console.log(`  key (x-only): ${identity.xOnly}`);
-console.log(`  balance:      ${await getSpendableSats(identity, DAEMON)} sats`);
+const balance = await ensureFunded(identity, DAEMON, 1000n, selected.price + 2n);
+console.log(`  balance:      ${balance} sats`);
 console.log(`  target:       ${target} -> ${selected.url}`);
 console.log(`  price:        ${selected.price} sats`);
 console.log('');
@@ -82,4 +83,4 @@ console.log(`3. received:    ${JSON.stringify(product).slice(0, 160)}…`);
 const record = await (await fetch(`${SELF}/receipt/${receipt.transaction}`)).json();
 console.log('');
 console.log(`re-fetch:       ${record.found ? record.state + ' · epoch ' + record.epoch : 'NOT FOUND'}`);
-console.log(`verify:         npx sats402 verify ${receipt.transaction}`);
+console.log(`verify:         node packages/cli/bin/sats402.mjs verify ${receipt.transaction}`);

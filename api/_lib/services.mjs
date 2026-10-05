@@ -35,6 +35,84 @@ export function withCors(handler) {
 }
 
 /**
+ * Derive public base URL from incoming request or environment variables.
+ * Ensures consistent normalization across sats402.vercel.app and mirrors.
+ */
+export function getPublicBaseUrl(req) {
+  if (process.env.SATS402_PUBLIC_URL) return process.env.SATS402_PUBLIC_URL;
+  if (req) {
+    const origin = req.headers?.origin;
+    if (origin && typeof origin === 'string') return origin.replace(/\/$/, '');
+    const forwardedProto = req.headers?.['x-forwarded-proto'];
+    const proto = (Array.isArray(forwardedProto) ? forwardedProto[0] : forwardedProto)?.split(',')[0]?.trim() || 'https';
+    const forwardedHost = req.headers?.['x-forwarded-host'];
+    const host = (Array.isArray(forwardedHost) ? forwardedHost[0] : forwardedHost)?.split(',')[0]?.trim() || req.headers?.host;
+    if (host) return `${proto}://${host}`;
+  }
+  if (process.env.VERCEL_PROJECT_PRODUCTION_URL) return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`;
+  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
+  return 'https://sats402.vercel.app';
+}
+
+/**
+ * Pluggable replay store: uses external KV (Vercel KV or Upstash Redis) when
+ * environment variables are present. When absent, uses an in-process store with
+ * best-effort local file caching. Durability boundary: replay protection is
+ * restart-durable only when configured with an external persistent store;
+ * without one, durability is bounded by instance lifetime.
+ */
+export function createReplayStore(serviceName) {
+  const kvUrl = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
+  const kvToken = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
+
+  if (kvUrl && kvToken) {
+    const memory = new Set();
+    return {
+      async consume(key) {
+        if (memory.has(key)) return false;
+        try {
+          const res = await fetch(`${kvUrl}/set/sats402:replay:${encodeURIComponent(key)}/consumed?nx=true`, {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${kvToken}` },
+          });
+          if (res.ok) {
+            const data = await res.json();
+            if (data.result === 'OK') {
+              memory.add(key);
+              return true;
+            }
+            return false;
+          }
+        } catch {
+          // If external call fails, fall back to in-process memory
+        }
+        if (memory.has(key)) return false;
+        memory.add(key);
+        return true;
+      },
+      async has(key) {
+        if (memory.has(key)) return true;
+        try {
+          const res = await fetch(`${kvUrl}/get/sats402:replay:${encodeURIComponent(key)}`, {
+            headers: { Authorization: `Bearer ${kvToken}` },
+          });
+          if (res.ok) {
+            const data = await res.json();
+            if (data.result !== null && data.result !== undefined) {
+              memory.add(key);
+              return true;
+            }
+          }
+        } catch {}
+        return memory.has(key);
+      },
+    };
+  }
+
+  return new FileReplayStore(`/tmp/sats402-replay-${serviceName.replace(/\W+/g, '-')}.jsonl`);
+}
+
+/**
  * Build a paid data endpoint.
  *
  * @param {object} opts
@@ -56,7 +134,8 @@ export function dataFeedPaywall(opts) {
       payeeXOnly: payee.xOnly,
       network: NETWORK_TACHI_REGTEST,
       daemonUrl: DAEMON,
-      replay: new FileReplayStore(`/tmp/sats402-replay-${opts.service.replace(/\W+/g, '-')}.jsonl`),
+      publicBaseUrl: (req) => getPublicBaseUrl(req),
+      replay: createReplayStore(opts.service),
       maxTimeoutSeconds: 120,
       resource: {
         description: `${opts.description} (${opts.service})`,

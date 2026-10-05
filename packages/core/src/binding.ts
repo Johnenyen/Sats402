@@ -22,17 +22,19 @@ export function normalizeResourceUrl(url: string): string {
 /**
  * The bound message, per scheme_exact_tachi.md:
  *
- *   sats402-exact-tachi:v1:nonce:<64 hex>:after:<unix>:before:<unix>:
- *   value:<sats>:to:<payee xonly>:network:<network>:resource:<url>
+ *   sats402-exact-tachi:v2:nonce:<64 hex>:after:<unix>:before:<unix>:
+ *   value:<sats>:to:<payee xonly>:network:<network>:resource:<url>:tx:<txHash>
  *
  * The signature covers the complete challenge (network, amount, payee,
- * resource, nonce, validity window), so a payment made for one request cannot
+ * resource, nonce, validity window) and commits to the exact settlement
+ * transaction hash, so a payment made for one request or transaction cannot
  * be presented for another.
  */
 export function buildBoundMessage(
   accepted: PaymentRequirements,
   authorization: Authorization,
-  resourceUrl: string
+  resourceUrl: string,
+  txHash: string
 ): string {
   return [
     BOUND_MESSAGE_TAG,
@@ -43,5 +45,6 @@ export function buildBoundMessage(
     `to:${accepted.payTo}`,
     `network:${accepted.network}`,
     `resource:${resourceUrl}`,
+    `tx:${txHash}`,
   ].join(':');
 }

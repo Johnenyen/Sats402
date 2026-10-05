@@ -148,7 +148,7 @@
       "receipt": "PAYMENT-RESPONSE"
     },
     "settlement": "Tachi transaction (tachi_tx), signed and broadcast by the paying agent",
-    "verify": "GET /receipt/:txid (read-only, daemon-returned) or npx sats402 verify <txid>",
+    "verify": "GET /receipt/:txid (read-only, daemon-returned) or node packages/cli/bin/sats402.mjs verify <txid>",
     "spec": "https://github.com/Johnenyen/Sats402/blob/main/specs/schemes/exact/scheme_exact_tachi.md"
   }
 }
