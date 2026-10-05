@@ -25,7 +25,7 @@ body {
 /* Navigation */
 .nav {
   position: sticky; top: 14px; z-index: 50;
-  max-width: 1060px; margin: 14px auto 0; padding: 10px 12px 10px 22px;
+  width: auto; margin: 14px 16px 0; padding: 10px 12px 10px 22px;
   background: rgba(255,255,255,0.92); backdrop-filter: blur(10px);
   border-radius: 18px; box-shadow: 0 12px 34px rgba(28,27,34,0.08);
   display: flex; align-items: center; justify-content: space-between; gap: 16px;
@@ -64,7 +64,7 @@ body {
 }
 
 /* Layout */
-.wrap { max-width: 1060px; margin: 0 auto; padding: 20px 20px 80px; }
+.wrap { width: auto; max-width: none; margin: 0 16px; padding: 20px 4px 80px; }
 .frame {
   background: var(--card);
   border-radius: 26px;
