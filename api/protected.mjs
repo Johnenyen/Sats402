@@ -23,9 +23,9 @@ function renderBrief(data) {
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet" />
 <link rel="stylesheet" href="/assets/style.css" /></head><body>
 <nav class="nav"><a class="brand" href="/">Sats402<span class="dot-accent">.</span></a>
-<div class="links"><a href="/">Home</a><a href="/services">Services</a><a href="/demo">Demo</a><a href="/verify">Verify</a>
+<div class="links"><a href="/">Home</a><a href="/requirements">Requirements</a><a href="/services">Try it</a><a href="/verify">Verify</a>
 <a href="/docs">Docs</a>
-<a class="btn-nav" href="https://github.com/Johnenyen/Sats402" target="_blank" rel="noopener">GitHub</a></div></nav>
+<a class="nav-gh" href="https://github.com/Johnenyen/Sats402" target="_blank" rel="noopener">GitHub ↗</a></div></nav>
 <div class="wrap"><div class="frame">
 <span class="eyebrow"><span class="dot"></span> Protected page example</span>
 <h1>Market brief<span class="grad">, paid in sats.</span></h1>

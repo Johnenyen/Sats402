@@ -86,7 +86,7 @@
             <div class="receipt-field receipt-field-latency">
               <span class="lbl">Latency</span>
               <span class="val val-stack">
-                <span>sub-second serve</span>
+                <span>on-chain commit</span>
                 <span class="val-sub">5,492 ms finality</span>
               </span>
             </div>
@@ -105,7 +105,7 @@
         <div class="hero-stat-lbl">SETTLED ON-CHAIN</div>
       </div>
       <div class="hero-stat-desc">
-        <b>Request round-trip (what the agent sees):</b> sub-second to verify + serve; <b>5,492 ms p50</b> is on-chain settlement finality across 20 consecutive calls. Re-fetchable by anyone.
+        <b>Request round-trip (what the agent sees):</b> the service serves only after the payment is committed on-chain, so the round-trip is the settlement time: <b>5,492 ms p50</b> across 20 consecutive calls on Tachi consensus. Re-fetchable by anyone.
       </div>
     </div>
 
