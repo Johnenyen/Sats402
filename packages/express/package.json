@@ -15,6 +15,7 @@
   "license": "MIT",
   "scripts": {
     "build": "tsc -p tsconfig.json",
+    "test": "node --test test/paywall.test.mjs",
     "test:live": "node --test test/live-e2e.test.mjs"
   },
   "dependencies": {

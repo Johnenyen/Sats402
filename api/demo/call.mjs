@@ -8,13 +8,13 @@
 //
 // Guarded: per-IP rate limit (the wallet is real and finite) and a fixed
 // outbound origin (no Host-header SSRF).
-import { Sats402Agent, getSpendableSats, settleTransfer, PolicyError } from '@sats402/agent';
+import { Sats402Agent, getSpendableSats, PolicyError } from '@sats402/agent';
 import { deriveIdentity, NETWORK_TACHI_REGTEST } from '@sats402/core';
 import { readJson } from '../_lib/readjson.mjs';
+import { getPublicBaseUrl } from '../_lib/services.mjs';
 
 const DAEMON = process.env.SATS402_DAEMON ?? 'https://rpc-regtest.tachibtc.com';
-// Fixed outbound origin: never built from the request Host header.
-const SELF = process.env.SATS402_PUBLIC_URL ?? 'https://sats402.vercel.app';
+
 const AGENT_MNEMONIC =
   process.env.SATS402_AGENT_MNEMONIC ??
   'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about';
@@ -26,13 +26,6 @@ const INFERENCE_MNEMONIC =
   process.env.SATS402_INFERENCE_MNEMONIC ??
   process.env.SATS402_S2_MNEMONIC ??
   'letter advice cage absurd amount doctor acoustic avoid letter advice cage above';
-
-const TARGETS = {
-  data: { url: `${SELF}/api/services/price`, price: '5', post: false },
-  fees: { url: `${SELF}/api/services/fees`, price: '5', post: false },
-  network: { url: `${SELF}/api/services/network`, price: '5', post: false },
-  inference: { url: `${SELF}/api/services/inference`, price: '50', post: true },
-};
 
 // Simple per-IP rate limit: the demo wallet is real and finite. Per-instance,
 // best effort; it stops casual loops, not a determined attacker.
@@ -79,6 +72,13 @@ export default async function handler(req, res) {
   }
 
   const body = await readJson(req);
+  const self = getPublicBaseUrl(req);
+  const TARGETS = {
+    data: { url: `${self}/api/services/price`, price: '5', post: false },
+    fees: { url: `${self}/api/services/fees`, price: '5', post: false },
+    network: { url: `${self}/api/services/network`, price: '5', post: false },
+    inference: { url: `${self}/api/services/inference`, price: '50', post: true },
+  };
   const target = TARGETS[body.target] ? body.target : 'data';
   const selected = TARGETS[target];
 
@@ -156,7 +156,10 @@ export default async function handler(req, res) {
     const init = {
       method: selected.post ? 'POST' : 'GET',
       headers: selected.post ? { 'content-type': 'application/json' } : {},
-      body: selected.post ? JSON.stringify({ question: body.question ?? '' }) : undefined,
+      body: selected.post
+        ? JSON.stringify({ question: body.question ?? '' })
+        : undefined,
+      signal: AbortSignal.timeout(8000),
     };
     const probe = await fetch(url, init);
     const challenge = probe.headers.get('PAYMENT-REQUIRED')
@@ -189,9 +192,15 @@ export default async function handler(req, res) {
     const replayed = paid.headers.get('X-Sats402-Replayed') === '1';
 
     // 3. The independent re-fetch, straight from the daemon record endpoint.
-    const record = receipt?.transaction
-      ? await (await fetch(`${SELF}/receipt/${receipt.transaction}`)).json()
-      : null;
+    let record = null;
+    if (receipt?.transaction) {
+      try {
+        const recRes = await fetch(`${self}/receipt/${receipt.transaction}`, {
+          signal: AbortSignal.timeout(8000),
+        });
+        if (recRes.ok) record = await recRes.json();
+      } catch {}
+    }
 
     res.statusCode = 200;
     res.setHeader('content-type', 'application/json');

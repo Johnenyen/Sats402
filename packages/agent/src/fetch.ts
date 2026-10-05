@@ -12,13 +12,17 @@ import {
   normalizeResourceUrl,
   tachiNetworkName,
   userAddressForXOnly,
+  xOnlyFromAddress,
   type Identity,
   type PaymentPayload,
   type PaymentRequired,
   type PaymentRequirements,
   type ResourceInfo,
+  type SettlementResponse,
 } from '@sats402/core';
+import { fetchSettlement, verifySettlement } from '@sats402/verify';
 import { settleTransfer } from './settle.js';
+import type { PayArgs, PayResult } from './pay.js';
 
 /** Local spending policy. Enforced before any settlement is made. */
 export interface SpendPolicy {
@@ -130,6 +134,125 @@ export class Sats402Agent {
       Buffer.from(JSON.stringify(payload)).toString('base64')
     );
     return fetch(url, { ...init, headers: retryHeaders });
+  }
+
+  /**
+   * Direct agent-to-agent settlement: one key-holder paying another, verified read-only.
+   * Runs the same spend-policy checks as fetch (per-call cap, session budget, payee allowlist),
+   * settles native sats on Tachi, and verifies the settlement read-only via @sats402/verify.
+   */
+  async pay(
+    recipientOrArgs:
+      | string
+      | PayArgs,
+    amountSats?: bigint,
+    options?: { feeSats?: bigint; memo?: string }
+  ): Promise<PayResult> {
+    const networkName = tachiNetworkName(this.options.network);
+    let payeeXOnly: string;
+    let recipientAddress: string;
+    let amount: bigint;
+    let fee: bigint;
+    let memo: string | undefined;
+
+    if (typeof recipientOrArgs === 'string') {
+      if (amountSats === undefined) {
+        throw new Error('amountSats is required when first argument is recipient address or pubkey');
+      }
+      amount = amountSats;
+      fee = options?.feeSats ?? this.options.feeSats ?? 1n;
+      memo = options?.memo;
+
+      if (/^[0-9a-f]{64}$/i.test(recipientOrArgs)) {
+        payeeXOnly = recipientOrArgs.toLowerCase();
+        recipientAddress = userAddressForXOnly(payeeXOnly, networkName);
+      } else {
+        recipientAddress = recipientOrArgs;
+        payeeXOnly = xOnlyFromAddress(recipientAddress);
+      }
+    } else {
+      amount = recipientOrArgs.amountSats;
+      fee = recipientOrArgs.feeSats ?? this.options.feeSats ?? 1n;
+      memo = recipientOrArgs.memo;
+
+      if (recipientOrArgs.payeeXOnly) {
+        payeeXOnly = recipientOrArgs.payeeXOnly.toLowerCase();
+        recipientAddress =
+          recipientOrArgs.recipientAddress ?? userAddressForXOnly(payeeXOnly, networkName);
+      } else if (recipientOrArgs.recipientAddress) {
+        recipientAddress = recipientOrArgs.recipientAddress;
+        payeeXOnly = xOnlyFromAddress(recipientAddress);
+      } else {
+        throw new Error('either payeeXOnly or recipientAddress must be provided');
+      }
+    }
+
+    // 1. POLICY FIRST: same checks as fetch
+    if (amount > this.options.policy.perCallCapSats) {
+      throw new PolicyError(`payment of ${amount} sats exceeds per-call cap`, 'per_call_cap');
+    }
+    if (this.spentSats + amount + fee > this.options.policy.sessionBudgetSats) {
+      throw new PolicyError(`payment of ${amount} sats exceeds session budget`, 'session_budget');
+    }
+    if (!this.options.policy.payeeAllowlist.includes(payeeXOnly)) {
+      throw new PolicyError('payee is not in the allowlist', 'payee_not_allowed');
+    }
+
+    // 2. SETTLE: the agent signs and broadcasts its own tachi_tx
+    const settled = await this.enqueueSettle(() =>
+      settleTransfer({
+        identity: this.options.identity,
+        recipientAddress,
+        amountSats: amount,
+        feeSats: fee,
+        daemonUrl: this.options.daemonUrl,
+        network: networkName,
+      })
+    );
+
+    this.spentSats += amount + fee;
+
+    // 3. READ-ONLY VERIFICATION via @sats402/verify (fetchSettlement + verifySettlement)
+    const accepted: PaymentRequirements = {
+      scheme: 'exact',
+      network: this.options.network,
+      amount: String(amount),
+      asset: 'BTC',
+      payTo: payeeXOnly,
+      maxTimeoutSeconds: 600,
+      extra: { assetTransferMethod: 'tachi_tx', paymentFlow: 'upfront' },
+    };
+
+    const resource: ResourceInfo = {
+      url: memo ? `memo:${memo}` : `tachi:${payeeXOnly}`,
+    };
+
+    const payload: PaymentPayload = formPayment({
+      accepted,
+      resource,
+      signer: this.options.identity.signer,
+      from: this.options.identity.xOnly,
+      settlement: { txHash: settled.txHash, state: 'committed' },
+    });
+
+    const txRecord = await fetchSettlement(this.options.daemonUrl, settled.txHash);
+    const verified = verifySettlement(payload, txRecord);
+    if (!verified.ok) {
+      throw new Error(`settlement verification failed: ${verified.error} (${verified.detail})`);
+    }
+
+    const receipt: SettlementResponse = {
+      success: true,
+      transaction: settled.txHash,
+      network: this.options.network,
+      payer: this.options.identity.xOnly,
+    };
+
+    return {
+      txHash: settled.txHash,
+      receipt,
+      network: this.options.network,
+    };
   }
 
   private enqueueSettle<T>(fn: () => Promise<T>): Promise<T> {

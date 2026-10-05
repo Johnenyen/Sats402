@@ -75,7 +75,7 @@
           <tr><td>Network identifiers</td><td>CAIP-2-style in the <code>tachi</code> namespace, reference taken from the underlying Bitcoin network's genesis prefix (BIP-122 convention). Example: <code>tachi:0f9188f13cb7b2c71f2a335e3a4fc328</code> (tachi-regtest-1). The namespace is a proposal declared by this binding.</td></tr>
           <tr><td>Amounts</td><td>Sat strings. Atomic units. Exact match required: no rounding, no fees added, no tolerance.</td></tr>
           <tr><td>Payee</td><td>The payee's x-only owner key on the Tachi ledger. The same key owns the received output.</td></tr>
-          <tr><td>Binding</td><td>The payer's signature covers the complete challenge: network, amount, payee, resource, nonce, and validity window. The settlement transaction is verified separately against the daemon: it must exist, be committed, pay the payee, and be signed by the payer's key. A payment made for one request cannot be presented for another. Resource URLs are normalized on both sides before binding.</td></tr>
+          <tr><td>Binding</td><td>The payer's signature covers the complete challenge and settlement: network, amount, payee, resource, nonce, validity window, and settlement transaction hash. A payment made for one request cannot be presented for another. Resource URLs are normalized on both sides before binding.</td></tr>
         </tbody>
 </table></div>
 
@@ -151,6 +151,14 @@ const agent = new Sats402Agent({
 });
 const res = await agent.fetch(url);
 // 402 handled, tachi_tx settled, proof retried. Product in res.</code></pre>
+      <p class="p"><b>Direct agent-to-agent payment (<code>agent.pay</code>)</b>:</p>
+      <pre><code>// Direct agent-to-agent settlement: one key-holder paying another, verified read-only
+const { txHash, receipt } = await agent.pay({
+  payeeXOnly: '99296e2fdf89f7249584f5572829f32e52e1e780e64743ed75601e7c6acf512e',
+  amountSats: 50n,
+  memo: 'agent task completion',
+});
+// Verified read-only: txHash is on-chain, policy checked, receipt returned.</code></pre>
       <div class="note">
         Runnable examples: <code>npm run demo:pay -- inference</code> (the agent
         on your machine) and <code>npm run cold-start</code> (the full recorded

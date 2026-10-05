@@ -52,22 +52,38 @@ export default dataFeedPaywall({
     'legal winner thank year wave sausage worth useful legal winner thank yellow',
   render: renderBrief,
   fetchProduct: async () => {
-    const price = await (
-      await fetch(
-        'https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd&include_24hr_change=true'
-      )
-    ).json();
-    const fees = await (
-      await fetch('https://mempool.space/api/v1/fees/recommended')
-    ).json();
-    return {
-      asset: 'bitcoin',
-      usd: price?.bitcoin?.usd ?? null,
-      usd_24h_change_pct: price?.bitcoin?.usd_24h_change ?? null,
-      fastest_fee_sat_vb: fees?.fastestFee ?? null,
-      hour_fee_sat_vb: fees?.hourFee ?? null,
-      source: 'CoinGecko + mempool.space public APIs',
-      read_at: new Date().toISOString(),
-    };
+    try {
+      const [priceRes, feesRes] = await Promise.all([
+        fetch(
+          'https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd&include_24hr_change=true',
+          { signal: AbortSignal.timeout(8000) }
+        ),
+        fetch('https://mempool.space/api/v1/fees/recommended', {
+          signal: AbortSignal.timeout(8000),
+        }),
+      ]);
+      const price = priceRes.ok ? await priceRes.json() : null;
+      const fees = feesRes.ok ? await feesRes.json() : null;
+      return {
+        asset: 'bitcoin',
+        usd: price?.bitcoin?.usd ?? null,
+        usd_24h_change_pct: price?.bitcoin?.usd_24h_change ?? null,
+        fastest_fee_sat_vb: fees?.fastestFee ?? null,
+        hour_fee_sat_vb: fees?.hourFee ?? null,
+        source: 'CoinGecko + mempool.space public APIs',
+        read_at: new Date().toISOString(),
+      };
+    } catch (err) {
+      return {
+        asset: 'bitcoin',
+        usd: null,
+        usd_24h_change_pct: null,
+        fastest_fee_sat_vb: null,
+        hour_fee_sat_vb: null,
+        source: 'CoinGecko + mempool.space public APIs (degraded)',
+        error: String(err instanceof Error ? err.message : err),
+        read_at: new Date().toISOString(),
+      };
+    }
   },
 });

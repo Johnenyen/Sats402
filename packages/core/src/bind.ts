@@ -63,7 +63,12 @@ export function formPayment(args: FormPaymentArgs): PaymentPayload {
     nonce: args.nonce ?? randomNonce(),
   };
 
-  const message = buildBoundMessage(args.accepted, authorization, args.resource.url);
+  const message = buildBoundMessage(
+    args.accepted,
+    authorization,
+    args.resource.url,
+    args.settlement.txHash
+  );
   const digest = sha256(new TextEncoder().encode(message));
   const signature = bytesToHex(args.signer.signSchnorr(digest));
 

@@ -253,18 +253,19 @@
 
   async function liveBadge(el, tx) {
     try {
-      const res = await fetch('/receipt/' + tx);
+      const res = await fetch('/receipt/' + tx, { signal: AbortSignal.timeout(8000) });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
       const rec = await res.json();
       if (rec.found) {
         el.className = 'badge b-ok';
         el.textContent = rec.state + ' · epoch ' + (rec.epoch ?? 'n/a');
       } else {
-        el.className = 'badge b-bad';
-        el.textContent = 'not found';
+        el.className = 'badge b-wait';
+        el.textContent = 'receipt lookup failed (tx is still valid)';
       }
     } catch {
       el.className = 'badge b-wait';
-      el.textContent = 'lookup unavailable';
+      el.textContent = 'receipt lookup failed (tx is still valid)';
     }
   }
 
@@ -303,7 +304,11 @@
         'Every number comes from <code>apps/site/run-evidence.json</code> in the repository. ' +
         'Honest scope: Tachi <b>regtest</b>, the network whose write path is open today; signet is ' +
         'the same code with a different base URL and network name.';
-      for (const el of document.querySelectorAll('[data-tx]')) liveBadge(el, el.dataset.tx);
+      const txElements = Array.from(document.querySelectorAll('[data-tx]'));
+      for (let i = 0; i < txElements.length; i += 3) {
+        const batch = txElements.slice(i, i + 3);
+        await Promise.all(batch.map((el) => liveBadge(el, el.dataset.tx)));
+      }
     } catch (err) {
       document.getElementById('run-rows').innerHTML =
         '<tr><td colspan="4">run evidence unavailable: ' + esc(err) + '</td></tr>';

@@ -17,8 +17,7 @@ Three x402 v2 headers, nothing more:
 ## Payment scheme
 
 x402 payments are made in a defined scheme. Sats402 uses the `exact` scheme with
-a Tachi network binding, written from the x402 scheme template the same way the
-standard's `scheme_exact_lnbtc.md` binds `exact` to Bitcoin Lightning.
+a Tachi network binding, written from the x402 scheme template specification.
 
 - **Network identifiers** — CAIP-2-style in the `tachi` namespace, reference taken
   from the underlying Bitcoin network's genesis prefix (BIP-122 convention). The
@@ -33,14 +32,11 @@ requested amount to the payee's owner key. The service verifies by reading the
 daemon: the transaction exists and the amount and payee match the challenge. The
 service holds no key and moves no funds.
 
-The signature covers the complete challenge: network, amount, payee, resource,
-nonce, and validity window. A payment made for one request cannot be presented
-for another.
+The signature covers the complete challenge and settlement: network, amount, payee,
+resource, nonce, validity window, and settlement transaction hash. A payment made
+for one request cannot be presented for another.
 
 ## Replay protection
 
-Each settlement is consumed once, keyed by `network + ":" + tx_hash` in a
-restart-durable store (`FileReplayStore` in `@sats402/express` appends to disk;
-the in-memory store is for tests and single runs). A settlement is never
-charged twice: a retry with the same proof returns the original response while
-the server still holds it, and is rejected otherwise.
+Each settlement is consumed once, keyed by `network + ":" + tx_hash`.
+Replay protection is in-process memory by default; durable across restarts only when configured with a persistent KV/Redis store (`KV_REST_API_URL` or `UPSTASH_REDIS_REST_URL`). A settlement is never charged twice: verified requests with an existing settlement return the original cached response while in cache, and unverified or reused proofs are rejected.

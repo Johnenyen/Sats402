@@ -101,14 +101,15 @@ invalidate the signature.
 The bound message is the ASCII string:
 
 ```text
-sats402-exact-tachi:v1:nonce:<64 hex>:after:<unix>:before:<unix>:value:<sats>:to:<payee xonly>:network:<network>:resource:<url>
+sats402-exact-tachi:v2:nonce:<64 hex>:after:<unix>:before:<unix>:value:<sats>:to:<payee xonly>:network:<network>:resource:<url>:tx:<txHash>
 ```
 
 where `nonce` is 64 lowercase hex, `after` and `before` are Unix seconds, `value`
 is the accepted `amount` string, `to` is the accepted `payTo`, `network` is the
-accepted `network`, and `resource` is the requested resource URL. The signature
-is a BIP-340 Schnorr signature over `SHA-256` of that message by the payer's
-owner key.
+accepted `network`, `resource` is the requested resource URL, and `tx` is the
+settlement transaction hash (64 lowercase hex). The signature commits to both
+the complete challenge and the exact `tachi_tx`. The signature is a BIP-340
+Schnorr signature over `SHA-256` of that message by the payer's owner key.
 
 ### HTTP Profile (`http:1`)
 
@@ -125,10 +126,16 @@ shape.
 
 ## `PaymentPayload`
 
+The normative shape of `resource` across all x402 v2 messages (`PaymentRequired`,
+`PaymentPayload`) is a `ResourceInfo` object containing at least `{ url: string }`,
+per spec 5.1 and 5.2, not a bare string. The bound message consumes `resource.url`.
+
 ```jsonc
 {
   "x402Version": 2,
-  "resource": "https://api.example.com/data",
+  "resource": {
+    "url": "https://api.example.com/data"
+  },
   "accepted": { /* PaymentRequirements echoed verbatim */ },
   "payload": {
     "signature": "<128 hex>",       // BIP-340 over the bound message by from
@@ -203,7 +210,10 @@ response without charging again, provided the replay key is the same.
 
 Settlement does not move funds in the facilitator step; the client moved the
 funds when it broadcast. Verification is observation. Enforcing single-use
-requires a restart-durable replay store. The canonical consumption key MUST be:
+requires a replay store. Replay protection is restart-durable only when backed
+by an external persistent store (such as Vercel KV, Upstash, or Redis);
+otherwise, it is strictly in-process and per-instance, lasting only for the
+lifetime of that execution environment. The canonical consumption key MUST be:
 
 ```text
 network + ":" + tx_hash
@@ -234,9 +244,9 @@ daemon read.
 
 ### Payment Substitution
 
-The signature covers network, amount, payee, resource, nonce, and validity
-window. A payment produced for one challenge cannot be presented as payment for
-another. The substitution test case is part of the test suite.
+The signature covers network, amount, payee, resource, nonce, validity window,
+and settlement transaction hash. A payment produced for one challenge cannot be
+presented as payment for another. The substitution test case is part of the test suite.
 
 ### Receiver Key Isolation
 
@@ -251,8 +261,9 @@ fixed grammar. There is no unit conversion anywhere in the scheme.
 
 ### Durable Replay Protection
 
-The replay store MUST survive restarts and the insert MUST be atomic with
-acceptance.
+Replay protection is restart-durable only when backed by an external persistent
+store (such as Vercel KV, Upstash, or Redis); without an external store, single-use
+enforcement is strictly in-process and bounded by instance lifetime.
 
 ### Payer Anonymity
 
@@ -263,6 +274,5 @@ not payer anonymity.
 ## References
 
 - `scheme_exact.md` — generic `exact` scheme (x402 v2)
-- `scheme_exact_lnbtc.md` — Bitcoin Lightning binding (structural template)
 - BIP-122 — URI scheme for blockchain references (CAIP-2 convention)
 - BIP-340 — Schnorr signatures for secp256k1

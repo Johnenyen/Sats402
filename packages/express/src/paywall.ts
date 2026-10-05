@@ -27,11 +27,12 @@ import { appendFileSync, existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { dirname } from 'node:path';
 
 /** Single-use settlement tracking. */
+/** Single-use settlement tracking. */
 export interface ReplayStore {
   /** True if the key is fresh and now consumed; false if already used. */
-  consume(key: string): boolean;
+  consume(key: string): boolean | Promise<boolean>;
   /** Whether the key has already been consumed. */
-  has(key: string): boolean;
+  has(key: string): boolean | Promise<boolean>;
 }
 
 /** In-memory replay store. Suitable for tests and single-run processes only. */
@@ -48,9 +49,11 @@ export class MemoryReplayStore implements ReplayStore {
 }
 
 /**
- * Restart-durable replay store: consumed keys are appended to a file and the
- * file is loaded at construction. This is the store the protocol requires for
- * production use.
+ * File-backed replay store: consumed keys are appended to a file and the
+ * file is loaded at construction. Durability boundary: replay protection is
+ * restart-durable only when backed by a persistent external store; in
+ * ephemeral or serverless environments (such as /tmp), durability is bounded
+ * by instance lifetime.
  */
 export class FileReplayStore implements ReplayStore {
   private seen = new Set<string>();
@@ -89,12 +92,11 @@ export interface PaywallOptions {
   maxTimeoutSeconds?: number;
   replay?: ReplayStore;
   /**
-   * Public origin of this service (e.g. https://api.example.com). When set it
-   * is the trusted base for the bound request URL. When omitted, the base is
-   * derived from forwarded headers (for TLS-terminating proxies) or the
-   * socket; deployments SHOULD configure this.
+   * Public origin of this service (e.g. https://api.example.com or a function
+   * deriving from req). When set it is the trusted base for the bound request URL.
+   * When omitted, the base is derived from forwarded headers or the socket.
    */
-  publicBaseUrl?: string;
+  publicBaseUrl?: string | ((req: IncomingMessage) => string);
   /** The protected handler, called only after a verified payment. */
   serve: (req: IncomingMessage, res: ServerResponse) => void | Promise<void>;
 }
@@ -150,13 +152,18 @@ function sameRequirement(a: PaymentRequirements, b: PaymentRequirements): boolea
  * trailing slash. Both sides normalize via core's normalizeResourceUrl.
  */
 function requestUrl(req: IncomingMessage, opts: PaywallOptions): string {
-  const path = req.url ?? '/';
-  if (opts.publicBaseUrl) return normalizeResourceUrl(`${opts.publicBaseUrl.replace(/\/$/, '')}${path}`);
-  const forwarded = req.headers['x-forwarded-proto'];
+  const path = (req as any).originalUrl ?? req.url ?? '/';
+  const base = typeof opts.publicBaseUrl === 'function' ? opts.publicBaseUrl(req) : opts.publicBaseUrl;
+  if (base) return normalizeResourceUrl(`${base.replace(/\/$/, '')}${path}`);
+  const forwardedProto = req.headers['x-forwarded-proto'];
   const proto =
-    (Array.isArray(forwarded) ? forwarded[0] : forwarded)?.split(',')[0]?.trim() ||
+    (Array.isArray(forwardedProto) ? forwardedProto[0] : forwardedProto)?.split(',')[0]?.trim() ||
     ((req.socket as { encrypted?: boolean }).encrypted ? 'https' : 'http');
-  const host = req.headers.host ?? 'localhost';
+  const forwardedHost = req.headers['x-forwarded-host'];
+  const host =
+    (Array.isArray(forwardedHost) ? forwardedHost[0] : forwardedHost)?.split(',')[0]?.trim() ||
+    req.headers.host ||
+    'localhost';
   return normalizeResourceUrl(`${proto}://${host}${path}`);
 }
 
@@ -183,17 +190,27 @@ function sendRejected(
   res: ServerResponse,
   opts: PaywallOptions,
   reason: ErrorCodeValue | string,
-  payer: string
+  payer: string,
+  req: IncomingMessage,
+  txHash?: string
 ): void {
+  const required: PaymentRequired = {
+    x402Version: 2,
+    error: String(reason),
+    resource: { ...opts.resource, url: requestUrl(req, opts) },
+    accepts: [requirement(opts)],
+    extensions: {},
+  };
   const response: SettlementResponse = {
     success: false,
     errorReason: String(reason),
-    transaction: '',
+    transaction: txHash ?? '',
     network: opts.network,
     payer,
   };
   res.statusCode = 402;
   res.setHeader('content-type', 'application/json');
+  res.setHeader(HEADER_PAYMENT_REQUIRED, b64(required));
   res.setHeader(HEADER_PAYMENT_RESPONSE, b64(response));
   res.end('{}');
 }
@@ -238,6 +255,16 @@ function recording(res: ServerResponse): { res: ServerResponse; capture: () => C
  * Build a node:http request handler enforcing payment before `serve`.
  * (Also usable as Express middleware: pass it directly as a route handler.)
  */
+function responseCacheKey(
+  network: string,
+  nonce: string,
+  resourceUrl: string,
+  payer: string,
+  txHash: string
+): string {
+  return `${network}:${nonce}:${resourceUrl}:${payer.toLowerCase()}:${txHash.toLowerCase()}`;
+}
+
 export function paywall(opts: PaywallOptions) {
   const replay = opts.replay ?? new MemoryReplayStore();
   const inFlight = new Set<string>();
@@ -267,72 +294,81 @@ export function paywall(opts: PaywallOptions) {
     }
 
     const payer = payload?.payload?.authorization?.from ?? '';
+    const txHash = payload?.payload?.settlement?.txHash ?? '';
+    const nonce = payload?.payload?.authorization?.nonce ?? '';
     const key =
-      payload?.accepted && payload?.payload?.settlement?.txHash
-        ? replayKey(payload.accepted.network, payload.payload.settlement.txHash)
+      payload?.accepted && txHash
+        ? replayKey(payload.accepted.network, txHash)
         : '';
 
-    // Single use: duplicates in flight are refused before any daemon work.
-    if (key && inFlight.has(key)) {
-      sendRejected(res, opts, 'replay_detected', payer);
-      return;
-    }
-
-    // A consumed settlement is never charged again. If the original response
-    // is still held, return it (paid-but-expired policy).
-    if (key && replay.has(key)) {
-      const cached = responses.get(key);
-      if (cached && Date.now() - cached.at <= RESPONSE_TTL_MS) {
-        const c = cached.res;
-        res.statusCode = c.status;
-        for (const [name, value] of Object.entries(c.headers)) {
-          if (value !== undefined) res.setHeader(name, value as string | string[] | number);
-        }
-        res.setHeader('X-Sats402-Replayed', '1');
-        res.end(c.body);
+    // In-flight race defense: add key to inFlight BEFORE expensive daemon/signature verification
+    // so simultaneous duplicate requests cannot both pass.
+    if (key) {
+      if (inFlight.has(key)) {
+        sendRejected(res, opts, 'replay_detected', payer, req, txHash);
         return;
       }
-      sendRejected(res, opts, 'replay_detected', payer);
-      return;
+      inFlight.add(key);
     }
 
-    // 1. The payment must be for the requirement this server issued. Network
-    // is called out first so a cross-network payment reports the right error.
-    if (payload.accepted && payload.accepted.network !== opts.network) {
-      sendRejected(res, opts, 'network_mismatch', payer);
-      return;
-    }
-    if (!payload.accepted || !sameRequirement(payload.accepted, requirement(opts))) {
-      sendRejected(res, opts, 'invalid_payment_requirements', payer);
-      return;
-    }
-
-    // 2. The payment must be bound to this exact request URL (normalized on
-    // both sides so proxy quirks cannot burn a payer's settled funds).
-    let normalized = '';
     try {
-      normalized = normalizeResourceUrl(payload.resource?.url ?? '');
-    } catch {
-      normalized = '';
-    }
-    if (normalized !== requestUrl(req, opts)) {
-      sendRejected(res, opts, 'invalid_payment_payload', payer);
-      return;
-    }
+      // 1. The payment must be for the requirement this server issued. Network
+      // is called out first so a cross-network payment reports the right error.
+      if (payload.accepted && payload.accepted.network !== opts.network) {
+        sendRejected(res, opts, 'network_mismatch', payer, req, txHash);
+        return;
+      }
+      if (!payload.accepted || !sameRequirement(payload.accepted, requirement(opts))) {
+        sendRejected(res, opts, 'invalid_payment_requirements', payer, req, txHash);
+        return;
+      }
 
-    // 3. Local verification: shape, binding, signature, validity window.
-    const local = verifyPayment(payload);
-    if (!local.ok) {
-      sendRejected(res, opts, local.error ?? 'invalid_payment_payload', payer);
-      return;
-    }
+      // 2. The payment must be bound to this exact request URL (normalized on
+      // both sides so proxy quirks cannot burn a payer's settled funds).
+      let normalized = '';
+      try {
+        normalized = normalizeResourceUrl(payload.resource?.url ?? '');
+      } catch {
+        normalized = '';
+      }
+      if (normalized !== requestUrl(req, opts)) {
+        sendRejected(res, opts, 'invalid_payment_payload', payer, req, txHash);
+        return;
+      }
 
-    // 4. Read-only settlement verification against the Tachi daemon.
-    if (key) inFlight.add(key);
-    try {
+      // 3. Local verification: shape, binding, signature, validity window.
+      // CRITICAL: NEVER serve cached content or read daemon before the request's
+      // signature and challenge binding are cryptographically verified!
+      const local = verifyPayment(payload);
+      if (!local.ok) {
+        sendRejected(res, opts, local.error ?? 'invalid_payment_payload', payer, req, txHash);
+        return;
+      }
+
+      // 4. Cache hit check: only AFTER verification succeeds.
+      // Cache key binds (network + nonce + resource + payer + txHash) so a bare txid
+      // copied from /verify cannot retrieve cached data without the payer's key.
+      const cacheKey = responseCacheKey(opts.network, nonce, normalized, payer, txHash);
+      if (key && (await replay.has(key))) {
+        const cached = responses.get(cacheKey);
+        if (cached && Date.now() - cached.at <= RESPONSE_TTL_MS) {
+          const c = cached.res;
+          res.statusCode = c.status;
+          for (const [name, value] of Object.entries(c.headers)) {
+            if (value !== undefined) res.setHeader(name, value as string | string[] | number);
+          }
+          res.setHeader('X-Sats402-Replayed', '1');
+          res.end(c.body);
+          return;
+        }
+        sendRejected(res, opts, 'replay_detected', payer, req, txHash);
+        return;
+      }
+
+      // 5. Read-only settlement verification against the Tachi daemon.
       let tx;
       try {
-        tx = await fetchSettlement(opts.daemonUrl, payload.payload.settlement.txHash);
+        tx = await fetchSettlement(opts.daemonUrl, txHash);
       } catch (err) {
         if (err instanceof SettlementLookupError) {
           // Transient daemon trouble is not a payment rejection: tell the
@@ -346,29 +382,29 @@ export function paywall(opts: PaywallOptions) {
       }
       const settled = verifySettlement(payload, tx);
       if (!settled.ok) {
-        sendRejected(res, opts, settled.error ?? 'settlement_not_found', payer);
+        sendRejected(res, opts, settled.error ?? 'settlement_not_found', payer, req, txHash);
         return;
       }
 
-      // 5. Single use: consume now that the payment is proven.
-      if (key && !replay.consume(key)) {
-        sendRejected(res, opts, 'replay_detected', payer);
+      // 6. Single use: consume now that the payment is proven.
+      if (key && !(await replay.consume(key))) {
+        sendRejected(res, opts, 'replay_detected', payer, req, txHash);
         return;
       }
 
       // PAID: report the settlement, then serve the resource. The response is
-      // recorded so a replay of this settlement returns the same response
-      // without a second charge.
+      // recorded under the bound cache key so a replay of this settlement returns
+      // the same response without a second charge.
       const response: SettlementResponse = {
         success: true,
-        transaction: payload.payload.settlement.txHash,
+        transaction: txHash,
         network: payload.accepted.network,
         payer,
       };
       const { res: capturedRes, capture } = recording(res);
       capturedRes.setHeader(HEADER_PAYMENT_RESPONSE, b64(response));
       await opts.serve(req, capturedRes);
-      if (key) remember(key, capture());
+      if (cacheKey && capturedRes.statusCode < 400) remember(cacheKey, capture());
     } finally {
       if (key) inFlight.delete(key);
     }

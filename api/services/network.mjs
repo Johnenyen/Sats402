@@ -16,15 +16,30 @@ const handle = dataFeedPaywall({
   defaultMnemonic:
     'legal winner thank year wave sausage worth useful legal winner thank yellow',
   fetchProduct: async () => {
-    const fee = await (await fetch(`${DAEMON}/tachi_feeEstimate`)).json();
-    const status = await (await fetch(`${DAEMON}/tachi_status`)).json();
-    return {
-      ledger_fee_sat: fee,
-      epoch_height: status?.result?.sync_info?.latest_block_height ?? null,
-      network: status?.result?.node_info?.network ?? null,
-      source: 'live Tachi daemon read, no cache',
-      read_at: new Date().toISOString(),
-    };
+    try {
+      const [feeRes, statusRes] = await Promise.all([
+        fetch(`${DAEMON}/tachi_feeEstimate`, { signal: AbortSignal.timeout(8000) }),
+        fetch(`${DAEMON}/tachi_status`, { signal: AbortSignal.timeout(8000) }),
+      ]);
+      const fee = feeRes.ok ? await feeRes.json() : null;
+      const status = statusRes.ok ? await statusRes.json() : null;
+      return {
+        ledger_fee_sat: fee,
+        epoch_height: status?.result?.sync_info?.latest_block_height ?? null,
+        network: status?.result?.node_info?.network ?? null,
+        source: 'live Tachi daemon read, no cache',
+        read_at: new Date().toISOString(),
+      };
+    } catch (err) {
+      return {
+        ledger_fee_sat: null,
+        epoch_height: null,
+        network: null,
+        source: 'live Tachi daemon read (degraded)',
+        error: String(err instanceof Error ? err.message : err),
+        read_at: new Date().toISOString(),
+      };
+    }
   },
 });
 

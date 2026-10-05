@@ -35,7 +35,7 @@ services.
 
 - GET /receipt/<txid> — read-only daemon record (state, epoch, outputs, inputs)
 - POST /api/verify-payment with a payment payload — runs every check live
-- CLI: npx sats402 verify <txid>
+- CLI: node packages/cli/bin/sats402.mjs verify <txid>
 
 Protocol binding (normative):
 https://github.com/Johnenyen/Sats402/blob/main/specs/schemes/exact/scheme_exact_tachi.md
