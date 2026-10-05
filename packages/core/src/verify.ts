@@ -128,7 +128,7 @@ export async function fetchSettlement(
     state: String(t.state ?? ''),
     vin,
     vout: ((t.vout ?? []) as Array<{ owner: string; amount: unknown }>).map((o) => ({
-      owner: o.owner,
+      owner: (o.owner ?? '').toLowerCase(),
       amount: String(o.amount),
     })),
     blockhash: t.blockhash as string | undefined,

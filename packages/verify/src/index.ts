@@ -44,9 +44,16 @@ export async function verifyReceipt(
     return { txHash, found: false, outputs: [], inputOwners: [], notes };
   }
 
+  // A settlement is only valid if the daemon reports it committed. Surface any
+  // other state as a failed assertion so callers/CI do not treat it as success.
+  if (tx.state !== 'committed') {
+    notes.push(`Transaction state is ${tx.state}, need committed: NOT MET`);
+  }
+
   if (expect?.payee) {
+    const payee = expect.payee.toLowerCase();
     const paid = tx.vout
-      .filter((o) => o.owner === expect.payee)
+      .filter((o) => o.owner === payee)
       .reduce((s, o) => s + BigInt(o.amount), 0n);
     notes.push(
       expect.amountSats !== undefined
@@ -54,6 +61,14 @@ export async function verifyReceipt(
           ? `Payee received ${paid} sats, expected at least ${expect.amountSats}: OK`
           : `Payee received ${paid} sats, expected at least ${expect.amountSats}: NOT MET`
         : `Payee received ${paid} sats`
+    );
+  } else if (expect?.amountSats !== undefined) {
+    // amount without payee: assert the total value the transaction moved.
+    const total = tx.vout.reduce((s, o) => s + BigInt(o.amount), 0n);
+    notes.push(
+      total >= expect.amountSats
+        ? `Outputs total ${total} sats, expected at least ${expect.amountSats}: OK`
+        : `Outputs total ${total} sats, expected at least ${expect.amountSats}: NOT MET`
     );
   }
 

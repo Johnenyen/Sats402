@@ -102,21 +102,29 @@ export class Sats402Agent {
       throw new PolicyError('payee is not in the allowlist', 'payee_not_allowed');
     }
 
+    // Reserve the budget synchronously (before any await) so concurrent calls
+    // cannot both pass the check above before either reserves. Rolled back if
+    // settlement fails before any sats move.
+    this.spentSats += amount + fee;
+
     // SETTLE: the agent signs and broadcasts its own tachi_tx.
     const networkName = tachiNetworkName(this.options.network);
-    const settled = await this.enqueueSettle(() =>
-      settleTransfer({
-        identity: this.options.identity,
-        recipientAddress: userAddressForXOnly(accepted.payTo, networkName),
-        amountSats: amount,
-        feeSats: fee,
-        daemonUrl: this.options.daemonUrl,
-        network: networkName,
-      })
-    );
-
-    // The sats have moved on-chain regardless of what the server answers.
-    this.spentSats += amount + fee;
+    let settled;
+    try {
+      settled = await this.enqueueSettle(() =>
+        settleTransfer({
+          identity: this.options.identity,
+          recipientAddress: userAddressForXOnly(accepted.payTo, networkName),
+          amountSats: amount,
+          feeSats: fee,
+          daemonUrl: this.options.daemonUrl,
+          network: networkName,
+        })
+      );
+    } catch (err) {
+      this.spentSats -= amount + fee;
+      throw err;
+    }
 
     const resource: ResourceInfo = { url: normalizeResourceUrl(url) };
     const payload: PaymentPayload = formPayment({
@@ -187,6 +195,18 @@ export class Sats402Agent {
       }
     }
 
+    // Consistency: funds settle to recipientAddress while the proof binds
+    // payeeXOnly. If both were supplied and disagree, funds would move to one
+    // party while attesting another, so reject up front.
+    {
+      const derived = xOnlyFromAddress(recipientAddress);
+      if (derived !== payeeXOnly) {
+        throw new Error(
+          `payeeXOnly (${payeeXOnly}) does not match recipientAddress (${recipientAddress} -> ${derived})`
+        );
+      }
+    }
+
     // 1. POLICY FIRST: same checks as fetch
     if (amount > this.options.policy.perCallCapSats) {
       throw new PolicyError(`payment of ${amount} sats exceeds per-call cap`, 'per_call_cap');
@@ -198,19 +218,26 @@ export class Sats402Agent {
       throw new PolicyError('payee is not in the allowlist', 'payee_not_allowed');
     }
 
-    // 2. SETTLE: the agent signs and broadcasts its own tachi_tx
-    const settled = await this.enqueueSettle(() =>
-      settleTransfer({
-        identity: this.options.identity,
-        recipientAddress,
-        amountSats: amount,
-        feeSats: fee,
-        daemonUrl: this.options.daemonUrl,
-        network: networkName,
-      })
-    );
-
+    // Reserve the budget synchronously (before any await) to close the race.
     this.spentSats += amount + fee;
+
+    // 2. SETTLE: the agent signs and broadcasts its own tachi_tx
+    let settled;
+    try {
+      settled = await this.enqueueSettle(() =>
+        settleTransfer({
+          identity: this.options.identity,
+          recipientAddress,
+          amountSats: amount,
+          feeSats: fee,
+          daemonUrl: this.options.daemonUrl,
+          network: networkName,
+        })
+      );
+    } catch (err) {
+      this.spentSats -= amount + fee;
+      throw err;
+    }
 
     // 3. READ-ONLY VERIFICATION via @sats402/verify (fetchSettlement + verifySettlement)
     const accepted: PaymentRequirements = {

@@ -14,6 +14,14 @@ import { readJson } from './_lib/readjson.mjs';
 export default async function handler(req, res) {
   try {
     res.setHeader('access-control-allow-origin', '*');
+    // Answer CORS preflights so cross-origin agents can call this endpoint.
+    if (req.method === 'OPTIONS') {
+      res.statusCode = 204;
+      res.setHeader('access-control-allow-methods', 'POST, OPTIONS');
+      res.setHeader('access-control-allow-headers', 'content-type, payment-signature');
+      res.end();
+      return;
+    }
     if (req.method !== 'POST') {
       res.statusCode = 405;
       res.setHeader('content-type', 'application/json');

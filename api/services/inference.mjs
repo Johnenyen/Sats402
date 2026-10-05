@@ -128,6 +128,7 @@ const handle = paywall({
 
     const apiKey = process.env.XKIRO_API_KEY ?? '';
     let answer;
+    let llmOk = false;
     if (!apiKey) {
       answer = 'Inference unavailable: XKIRO_API_KEY is not set on the server.';
     } else {
@@ -158,13 +159,26 @@ const handle = paywall({
         });
         const parsed = await completion.json().catch(() => ({}));
         const message = parsed?.choices?.[0]?.message ?? {};
-        answer =
-          message.content ||
-          message.reasoning_content ||
-          `completion unavailable (${completion.status})`;
+        const content = message.content || message.reasoning_content || null;
+        if (content) {
+          answer = content;
+          llmOk = true;
+        } else {
+          answer = `completion unavailable (${completion.status})`;
+        }
       } catch (err) {
         answer = `completion unavailable: ${String(err instanceof Error ? err.message : err)}`;
       }
+    }
+
+    // Fail closed on a failed completion too: do NOT charge 50 sats for an empty
+    // answer. A 200 would let the paywall consume the payment; 502 keeps the
+    // payer's settlement retryable (matches the grounding-data fail-closed above).
+    if (!llmOk) {
+      res.statusCode = 502;
+      res.setHeader('content-type', 'application/json');
+      res.end(JSON.stringify({ error: 'completion_failed', message: answer }, null, 2));
+      return;
     }
 
     res.statusCode = 200;

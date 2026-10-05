@@ -231,33 +231,69 @@ interface CapturedResponse {
   body: string;
 }
 
-/** Record what serve() writes so a replay can return the same response. */
-function recording(res: ServerResponse): { res: ServerResponse; capture: () => CapturedResponse } {
+/** Build an in-memory response object for serve() to write into.
+ *
+ *  serve() writes to a MOCK response that buffers; nothing reaches the socket.
+ *  The caller decides when to commit it via writeTo(target). This lets the
+ *  settlement be marked consumed atomically BEFORE any bytes reach the client,
+ *  so a settled payment can never be served twice, and content is never
+ *  delivered for an unconsumed (still-replayable) payment. The real `res` is
+ *  left untouched so error paths (sendRejected) can still write to it.
+ */
+function recording(): {
+  res: ServerResponse;
+  capture: () => CapturedResponse;
+  writeTo: (target: ServerResponse) => void;
+} {
   const chunks: Buffer[] = [];
-  // Pragmatic interception of the response stream; types are intentionally
-  // loose here because we are wrapping Node's overloaded write/end methods.
-  const originalWrite = res.write.bind(res) as (...a: unknown[]) => unknown;
-  const originalEnd = res.end.bind(res) as (...a: unknown[]) => unknown;
+  const headers: Record<string, unknown> = {};
   const collect = (chunk: unknown) => {
     if (chunk && typeof chunk !== 'function') {
       chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(String(chunk)));
     }
   };
-  (res as unknown as { write: (...a: unknown[]) => unknown }).write = (chunk: unknown, ...rest: unknown[]) => {
-    collect(chunk);
-    return originalWrite(chunk, ...rest);
-  };
-  (res as unknown as { end: (...a: unknown[]) => unknown }).end = (chunk: unknown, ...rest: unknown[]) => {
-    collect(chunk);
-    return originalEnd(chunk, ...rest);
+  // Minimal ServerResponse surface used by the service handlers.
+  const mock: Record<string, unknown> = {
+    statusCode: 200,
+    setHeader(name: string, value: unknown) {
+      headers[name] = value;
+      return mock;
+    },
+    getHeaders() {
+      return { ...headers };
+    },
+    write(chunk: unknown, ..._rest: unknown[]) {
+      collect(chunk);
+      return true;
+    },
+    end(chunk?: unknown, ..._rest: unknown[]) {
+      collect(chunk);
+      return mock;
+    },
+    on() {
+      return mock;
+    },
+    once() {
+      return mock;
+    },
+    emit() {
+      return false;
+    },
   };
   return {
-    res,
+    res: mock as unknown as ServerResponse,
     capture: () => ({
-      status: res.statusCode,
-      headers: { ...res.getHeaders() },
+      status: (mock.statusCode as number) ?? 200,
+      headers: { ...headers },
       body: Buffer.concat(chunks).toString('utf8'),
     }),
+    writeTo: (target: ServerResponse) => {
+      target.statusCode = (mock.statusCode as number) ?? 200;
+      for (const [k, v] of Object.entries(headers)) {
+        target.setHeader(k, v as string | number | readonly string[]);
+      }
+      target.end(Buffer.concat(chunks));
+    },
   };
 }
 
@@ -411,13 +447,23 @@ export function paywall(opts: PaywallOptions) {
         network: payload.accepted.network,
         payer,
       };
-      const { res: capturedRes, capture } = recording(res);
+      const { res: capturedRes, capture, writeTo } = recording();
       capturedRes.setHeader(HEADER_PAYMENT_RESPONSE, b64(response));
       await opts.serve(req, capturedRes);
       if (capturedRes.statusCode < 400) {
-        if (key) await replay.consume(key);
+        // Mark the settlement consumed atomically BEFORE committing bytes to the
+        // socket. If a concurrent request already consumed it, reject instead of
+        // double-delivering (no double-serve across instances).
+        if (key && !(await replay.consume(key))) {
+          sendRejected(res, opts, 'replay_detected', payer, req, txHash);
+          return;
+        }
         if (cacheKey) remember(cacheKey, capture());
       }
+      // Commit the buffered response only after the settlement is marked used
+      // (success) or after deliberately NOT consuming (error). This guarantees a
+      // settled payment is served exactly once and never delivered unconsumed.
+      writeTo(res);
     } finally {
       if (key) inFlight.delete(key);
     }
