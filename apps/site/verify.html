@@ -69,6 +69,8 @@
     <textarea class="field" id="payload" placeholder='{ "x402Version": 2, "accepted": { … }, "payload": { … } }' spellcheck="false"></textarea>
     <div class="cta" style="margin-top:12px">
       <button class="btn btn-primary" id="verify-payload">Run all checks</button>
+      <button class="btn btn-ghost" id="load-sample">Load sample payload</button>
+      <span class="section-sub" style="margin:8px 0 0;font-size:12.5px">The sample uses a real settlement from our recorded run. Replace the <code>signature</code> and <code>nonce</code> with a real client's to pass the signature check.</span>
     </div>
     <pre id="payload-out" style="display:none; margin-top:16px;"></pre>
   </div>
@@ -153,6 +155,38 @@ note: Record is daemon-returned and re-fetchable: anyone can repeat this lookup.
   });
   const preset = new URLSearchParams(location.search).get('tx');
   if (preset) { $('txid').value = preset.trim().toLowerCase(); lookUp(); }
+
+  $('load-sample').addEventListener('click', () => {
+    const sample = {
+      x402Version: 2,
+      resource: { url: 'https://sats402-receipts.vercel.app/api/services/network' },
+      accepted: {
+        scheme: 'exact',
+        network: 'tachi:0f9188f13cb7b2c71f2a335e3a4fc328',
+        amount: '5',
+        asset: 'BTC',
+        payTo: '6267b312b2ff30bfe30b6bcc4e521e965142547cf32bc45fad9bd70a7702338f',
+        maxTimeoutSeconds: 600,
+      },
+      payload: {
+        signature: 'REPLACE_WITH_128_HEX_BIP340_SIGNATURE',
+        authorization: {
+          from: 'e7ab2537b5d49e970309aae06e9e49f36ce1c9febbd44ec8e0d1cca0b4f9c319',
+          to: '6267b312b2ff30bfe30b6bcc4e521e965142547cf32bc45fad9bd70a7702338f',
+          value: '5',
+          validAfter: '1759600000',
+          validBefore: '1759600600',
+          nonce: 'REPLACE_WITH_64_HEX_RANDOM_NONCE',
+        },
+        settlement: {
+          txHash: '99296e2fdf89f7249584f5572829f32e52e1e780e64743ed75601e7c6acf512e',
+          state: 'committed',
+        },
+      },
+    };
+    $('payload').value = JSON.stringify(sample, null, 2);
+    $('payload').focus();
+  });
 
   $('verify-payload').addEventListener('click', async () => {
     const out = $('payload-out');
