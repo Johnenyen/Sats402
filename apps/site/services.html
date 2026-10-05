@@ -40,7 +40,7 @@
     <span class="eyebrow"><span class="dot"></span> Live services</span>
     <h1>What agents buy<span class="grad"> — and run one, right here.</span></h1>
     <p class="lede">
-      Four live services, arranged the way agents shop for them: data feeds first,
+      Four live endpoints in two categories, arranged the way agents shop for them: data feeds first,
       then the model. Every endpoint speaks x402: call it, pay the challenge,
       retry. No accounts, no API keys, no subscriptions.
     </p>
@@ -79,6 +79,140 @@
     </div>
   </div>
 
+  <div class="frame" id="run-demo">
+    <span class="eyebrow"><span class="dot"></span> Live demo</span>
+    <h2>Run a real payment<span class="grad">, right here.</span></h2>
+
+    <!-- Mini 3-Step Flow -->
+    <div class="demo-mini-steps">
+      <div class="demo-mini-step">
+        <b>1. Call (HTTP 402)</b>
+        Service issues challenge with atomic price in sats and payee key.
+      </div>
+      <div class="demo-mini-step">
+        <b>2. Pay (tachi_tx)</b>
+        Agent evaluates spending policy, then self-signs and broadcasts payment.
+      </div>
+      <div class="demo-mini-step">
+        <b>3. Get Data (HTTP 200)</b>
+        Service verifies daemon settlement and serves product with proof receipt.
+      </div>
+    </div>
+    <p style="font-size:12.5px; color:var(--muted); margin:0 0 16px;">
+      Run the agent on your own machine: <code>npm run demo:pay -- inference</code> or <code>npm run cold-start</code>.
+    </p>
+
+    <!-- Trust Signals Above Buttons -->
+    <div class="demo-trust-badges">
+      <div class="demo-trust-badge">
+        <b><span class="trust-icon">✓</span> Real Wallet &amp; Funds</b>
+        Real sats on Tachi regtest. Rate-limited (6/hr per client) to protect demo faucet funds.
+      </div>
+      <div class="demo-trust-badge">
+        <b><span class="trust-icon">✓</span> Re-Fetchable Receipts</b>
+        Every settlement commits a <code>tachi_tx</code> verifiable live on <a href="/verify">/verify</a>.
+      </div>
+      <div class="demo-trust-badge">
+        <b><span class="trust-icon">✓</span> Keyless Verification</b>
+        <div style="margin-bottom:2px;">CLI verification (read-only):</div>
+        <div class="cli-chip">
+          <code>node packages/cli/bin/sats402.mjs verify &lt;txid&gt;</code>
+          <button type="button" class="clip-copy-btn" onclick="navigator.clipboard.writeText('node packages/cli/bin/sats402.mjs verify <txid>');this.textContent='copied!';setTimeout(()=>this.textContent='copy',1500)">copy</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2x2 Equal Grid with 50-sat Inference as Primary -->
+    <div class="demo-grid-2x2" id="demo-buttons">
+      <button class="btn btn-primary btn-grid-item" id="try-inference" data-target="inference">
+        <span class="btn-title">Buy a grounded answer</span>
+        <span class="btn-badge-price">50 sats</span>
+      </button>
+      <button class="btn btn-ghost btn-grid-item" id="try-data" data-target="data">
+        <span class="btn-title">Buy market data</span>
+        <span class="btn-badge-price">5 sats</span>
+      </button>
+      <button class="btn btn-ghost btn-grid-item" id="try-fees" data-target="fees">
+        <span class="btn-title">Buy fee estimates</span>
+        <span class="btn-badge-price">5 sats</span>
+      </button>
+      <button class="btn btn-ghost btn-grid-item" id="try-network" data-target="network">
+        <span class="btn-title">Buy network state</span>
+        <span class="btn-badge-price">5 sats</span>
+      </button>
+    </div>
+
+    <p class="section-sub" id="demo-hint" style="margin-top:14px; margin-bottom:0;">
+      One click makes one real settlement (about 5.5s Tachi consensus finality). Payments run one at a time.
+    </p>
+
+    <!-- Sample Output Previews -->
+    <div class="sample-preview-box">
+      <div class="sample-preview-title">Sample Response Previews (what you get upon payment)</div>
+      <div class="sample-grid">
+        <div class="sample-card">
+          <div class="sample-card-head">
+            <span class="name">Grounded AI Completion</span>
+            <span class="pill lav">50 sats</span>
+          </div>
+          <pre>{
+  "question": "What is the recommended fee?",
+  "answer": "Current recommended fee is 1 sat/vB...",
+  "data_purchase": {
+    "amountSats": "5",
+    "tx": "99296e2fdf89f724..."
+  }
+}</pre>
+        </div>
+        <div class="sample-card">
+          <div class="sample-card-head">
+            <span class="name">BTC Price Feed</span>
+            <span class="pill blue">5 sats</span>
+          </div>
+          <pre>{
+  "asset": "bitcoin",
+  "usd": 84736,
+  "usd_24h_change_pct": -1.46,
+  "source": "CoinGecko public API"
+}</pre>
+        </div>
+        <div class="sample-card">
+          <div class="sample-card-head">
+            <span class="name">Bitcoin Fee Estimates</span>
+            <span class="pill lime">5 sats</span>
+          </div>
+          <pre>{
+  "unit": "sat/vB",
+  "fastest": 5,
+  "half_hour": 4,
+  "hour": 3,
+  "economy": 2,
+  "minimum": 1
+}</pre>
+        </div>
+        <div class="sample-card">
+          <div class="sample-card-head">
+            <span class="name">Tachi Network State</span>
+            <span class="pill blue">5 sats</span>
+          </div>
+          <pre>{
+  "ledger_fee_sat": {
+    "recommended_fee_sat": 1
+  },
+  "epoch_height": "967207",
+  "network": "tachi-regtest-1"
+}</pre>
+        </div>
+      </div>
+    </div>
+
+    <div id="demo-out-wrap" style="display:none; margin-top:20px;">
+      <div class="demo-out" style="background:#faf9fd; border:1px solid #eae7f4; border-radius:16px;">
+        <p class="demo-status" id="demo-status" role="status" aria-live="polite"></p>
+        <div id="demo-result"></div>
+      </div>
+    </div>
+  </div>
   <div class="frame" id="price">
     <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px;">
       <div>
@@ -247,140 +381,6 @@
     </div>
   </div>
 
-  <div class="frame" id="run-demo">
-    <span class="eyebrow"><span class="dot"></span> Live demo</span>
-    <h2>Run a real payment<span class="grad">, right here.</span></h2>
-
-    <!-- Mini 3-Step Flow -->
-    <div class="demo-mini-steps">
-      <div class="demo-mini-step">
-        <b>1. Call (HTTP 402)</b>
-        Service issues challenge with atomic price in sats and payee key.
-      </div>
-      <div class="demo-mini-step">
-        <b>2. Pay (tachi_tx)</b>
-        Agent evaluates spending policy, then self-signs and broadcasts payment.
-      </div>
-      <div class="demo-mini-step">
-        <b>3. Get Data (HTTP 200)</b>
-        Service verifies daemon settlement and serves product with proof receipt.
-      </div>
-    </div>
-    <p style="font-size:12.5px; color:var(--muted); margin:0 0 16px;">
-      Run the agent on your own machine: <code>npm run demo:pay -- inference</code> or <code>npm run cold-start</code>.
-    </p>
-
-    <!-- Trust Signals Above Buttons -->
-    <div class="demo-trust-badges">
-      <div class="demo-trust-badge">
-        <b><span class="trust-icon">✓</span> Real Wallet &amp; Funds</b>
-        Real sats on Tachi regtest. Rate-limited (6/hr per client) to protect demo faucet funds.
-      </div>
-      <div class="demo-trust-badge">
-        <b><span class="trust-icon">✓</span> Re-Fetchable Receipts</b>
-        Every settlement commits a <code>tachi_tx</code> verifiable live on <a href="/verify">/verify</a>.
-      </div>
-      <div class="demo-trust-badge">
-        <b><span class="trust-icon">✓</span> Keyless Verification</b>
-        <div style="margin-bottom:2px;">CLI verification (read-only):</div>
-        <div class="cli-chip">
-          <code>node packages/cli/bin/sats402.mjs verify &lt;txid&gt;</code>
-          <button type="button" class="clip-copy-btn" onclick="navigator.clipboard.writeText('node packages/cli/bin/sats402.mjs verify <txid>');this.textContent='copied!';setTimeout(()=>this.textContent='copy',1500)">copy</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- 2x2 Equal Grid with 50-sat Inference as Primary -->
-    <div class="demo-grid-2x2" id="demo-buttons">
-      <button class="btn btn-primary btn-grid-item" id="try-inference" data-target="inference">
-        <span class="btn-title">Buy a grounded answer</span>
-        <span class="btn-badge-price">50 sats</span>
-      </button>
-      <button class="btn btn-ghost btn-grid-item" id="try-data" data-target="data">
-        <span class="btn-title">Buy market data</span>
-        <span class="btn-badge-price">5 sats</span>
-      </button>
-      <button class="btn btn-ghost btn-grid-item" id="try-fees" data-target="fees">
-        <span class="btn-title">Buy fee estimates</span>
-        <span class="btn-badge-price">5 sats</span>
-      </button>
-      <button class="btn btn-ghost btn-grid-item" id="try-network" data-target="network">
-        <span class="btn-title">Buy network state</span>
-        <span class="btn-badge-price">5 sats</span>
-      </button>
-    </div>
-
-    <p class="section-sub" id="demo-hint" style="margin-top:14px; margin-bottom:0;">
-      One click makes one real settlement (about 5.5s Tachi consensus finality). Payments run one at a time.
-    </p>
-
-    <!-- Sample Output Previews -->
-    <div class="sample-preview-box">
-      <div class="sample-preview-title">Sample Response Previews (what you get upon payment)</div>
-      <div class="sample-grid">
-        <div class="sample-card">
-          <div class="sample-card-head">
-            <span class="name">Grounded AI Completion</span>
-            <span class="pill lav">50 sats</span>
-          </div>
-          <pre>{
-  "question": "What is the recommended fee?",
-  "answer": "Current recommended fee is 1 sat/vB...",
-  "data_purchase": {
-    "amountSats": "5",
-    "tx": "99296e2fdf89f724..."
-  }
-}</pre>
-        </div>
-        <div class="sample-card">
-          <div class="sample-card-head">
-            <span class="name">BTC Price Feed</span>
-            <span class="pill blue">5 sats</span>
-          </div>
-          <pre>{
-  "asset": "bitcoin",
-  "usd": 84736,
-  "usd_24h_change_pct": -1.46,
-  "source": "CoinGecko public API"
-}</pre>
-        </div>
-        <div class="sample-card">
-          <div class="sample-card-head">
-            <span class="name">Bitcoin Fee Estimates</span>
-            <span class="pill lime">5 sats</span>
-          </div>
-          <pre>{
-  "unit": "sat/vB",
-  "fastest": 5,
-  "half_hour": 4,
-  "hour": 3,
-  "economy": 2,
-  "minimum": 1
-}</pre>
-        </div>
-        <div class="sample-card">
-          <div class="sample-card-head">
-            <span class="name">Tachi Network State</span>
-            <span class="pill blue">5 sats</span>
-          </div>
-          <pre>{
-  "ledger_fee_sat": {
-    "recommended_fee_sat": 1
-  },
-  "epoch_height": "967207",
-  "network": "tachi-regtest-1"
-}</pre>
-        </div>
-      </div>
-    </div>
-
-    <div id="demo-out-wrap" style="display:none; margin-top:20px;">
-      <div class="demo-out" style="background:#faf9fd; border:1px solid #eae7f4; border-radius:16px;">
-        <p class="demo-status" id="demo-status" role="status" aria-live="polite"></p>
-        <div id="demo-result"></div>
-      </div>
-    </div>
-  </div>
 
   <div class="frame">
     <h2>Calling any endpoint</h2>
