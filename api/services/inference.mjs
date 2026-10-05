@@ -154,7 +154,7 @@ const handle = paywall({
               },
             ],
           }),
-          signal: AbortSignal.timeout(8000),
+          signal: AbortSignal.timeout(30_000),
         });
         const parsed = await completion.json().catch(() => ({}));
         const message = parsed?.choices?.[0]?.message ?? {};

@@ -169,12 +169,16 @@ export default async function handler(req, res) {
     // 2. The paid call: policy -> settle (our own tachi_tx) -> retry. A mempool
     // race (another attempt's VTXO still pending) settled nothing, so retrying
     // is safe: back off and retry until the mempool clears (6s, then 12s).
+    // The paid call gets its own generous timeout: the chained inference path
+    // (settle -> service buys grounding data -> LLM) legitimately exceeds the
+    // probe's 8s, and aborting it mid-settlement reports a false timeout.
+    const paidInit = { ...init, signal: AbortSignal.timeout(60_000) };
     const started = Date.now();
     let paid;
     let lastErr;
     for (let attempt = 0; attempt < 3; attempt++) {
       try {
-        paid = await agent.fetch(url, init);
+        paid = await agent.fetch(url, paidInit);
         lastErr = undefined;
         break;
       } catch (err) {
