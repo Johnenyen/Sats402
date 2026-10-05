@@ -152,7 +152,7 @@ function sameRequirement(a: PaymentRequirements, b: PaymentRequirements): boolea
  * trailing slash. Both sides normalize via core's normalizeResourceUrl.
  */
 function requestUrl(req: IncomingMessage, opts: PaywallOptions): string {
-  const path = req.url ?? '/';
+  const path = (req as any).originalUrl ?? req.url ?? '/';
   const base = typeof opts.publicBaseUrl === 'function' ? opts.publicBaseUrl(req) : opts.publicBaseUrl;
   if (base) return normalizeResourceUrl(`${base.replace(/\/$/, '')}${path}`);
   const forwardedProto = req.headers['x-forwarded-proto'];

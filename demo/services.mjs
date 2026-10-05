@@ -19,8 +19,8 @@ const BROWSER_UA =
 
 /** The live daemon read S1 sells. Fetched fresh on every paid request. */
 export async function readDaemon() {
-  const fee = await (await fetch(`${DAEMON}/tachi_feeEstimate`)).json();
-  const status = await (await fetch(`${DAEMON}/tachi_status`)).json();
+  const fee = await (await fetch(`${DAEMON}/tachi_feeEstimate`, { signal: AbortSignal.timeout(8000) })).json();
+  const status = await (await fetch(`${DAEMON}/tachi_status`, { signal: AbortSignal.timeout(8000) })).json();
   return {
     fee_estimate_sat: fee,
     epoch_height: status?.result?.sync_info?.latest_block_height ?? null,
@@ -118,6 +118,7 @@ export function startS2({ identity, s1Url, s1PayeeXOnly, priceSats = 50n, model,
         try {
           const completion = await fetch(XKIRO_URL, {
             method: 'POST',
+            signal: AbortSignal.timeout(8000),
             headers: {
               Authorization: `Bearer ${apiKey}`,
               'Content-Type': 'application/json',

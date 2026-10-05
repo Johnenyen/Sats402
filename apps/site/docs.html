@@ -126,7 +126,9 @@ import { deriveIdentity } from '@sats402/core';
 
 const agent = new Sats402Agent({
   identity: deriveIdentity(MNEMONIC, 'regtest', 0),
-  policy: { perCallCapSats: 60n, sessionBudgetSats: 400n },
+  daemonUrl: 'https://rpc-regtest.tachibtc.com',
+  network: 'tachi:0f9188f13cb7b2c71f2a335e3a4fc328',
+  policy: { perCallCapSats: 60n, sessionBudgetSats: 400n, payeeAllowlist: [payeeXOnly] },
 });
 const res = await agent.fetch('https://sats402.vercel.app/api/services/price');
 // 402 handled, tachi_tx settled, proof retried. Product in res.</code></pre>

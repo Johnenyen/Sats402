@@ -100,10 +100,13 @@ interface ResolvedInput {
  * throw {@link SettlementLookupError} rather than silently reporting an empty
  * owner, which would wrongly reject a valid payment.
  */
+const defaultFetch: typeof fetch = (input, init) =>
+  fetch(input, { signal: AbortSignal.timeout(15_000), ...init });
+
 export async function fetchSettlement(
   daemonUrl: string,
   txHash: string,
-  fetchImpl: typeof fetch = fetch
+  fetchImpl: typeof fetch = defaultFetch
 ): Promise<TachiTxRecord | null> {
   const base = daemonUrl.replace(/\/$/, '');
   const t = await fetchTx(base, txHash, fetchImpl);

@@ -184,3 +184,43 @@ test('CACHED RESPONSE IS NOT ACCESSIBLE WITHOUT VALID SIGNATURE OVER BOUND CHALL
     server.close();
   }
 });
+
+test('Express sub-router mounting: challenge advertises originalUrl full path', async () => {
+  const handle = paywall({
+    priceSats: 50n,
+    payeeXOnly,
+    network: NETWORK_TACHI_REGTEST,
+    daemonUrl: 'https://rpc-regtest.tachibtc.com',
+    resource: {
+      description: 'Mounted sub-router resource',
+    },
+    publicBaseUrl: 'http://127.0.0.1',
+    serve: (req, res) => {
+      res.statusCode = 200;
+      res.end('ok');
+    },
+  });
+
+  const server = http.createServer((req, res) => {
+    // Express sub-router mount: req.originalUrl is the full incoming path,
+    // while req.url is stripped of the mount prefix.
+    req.originalUrl = req.url;
+    req.url = req.url.replace(/^\/api\/v1/, '') || '/';
+    handle(req, res);
+  });
+  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+  const port = server.address().port;
+  const baseUrl = `http://127.0.0.1:${port}`;
+
+  try {
+    const probe = await fetch(`${baseUrl}/api/v1/data`);
+    assert.equal(probe.status, 402);
+    const challengeHeader = probe.headers.get(HEADER_PAYMENT_REQUIRED);
+    assert.ok(challengeHeader, '402 challenge must carry PAYMENT-REQUIRED');
+    const challenge = unb64(challengeHeader);
+    assert.equal(challenge.resource.url, 'http://127.0.0.1/api/v1/data');
+  } finally {
+    server.close();
+  }
+});
+

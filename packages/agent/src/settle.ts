@@ -142,7 +142,8 @@ export async function ensureFunded(
  */
 const VAULT_CSV_BLOCKS = 2;
 
-const IN_FLIGHT_TTL_MS = 60_000;
+// Must exceed waitForTachiTxCommit overallTimeoutMs (120_000ms)
+const IN_FLIGHT_TTL_MS = 180_000; // Must exceed waitForTachiTxCommit overallTimeoutMs (120s)
 const inFlightVtxoIds = new Map<string, number>();
 
 function cleanInFlight(): void {
@@ -318,8 +319,15 @@ export async function settleTransfer(args: SettleArgs): Promise<SettlementResult
       overallTimeoutMs: 120_000,
     });
 
+    // Delay release by a 5-second grace window: the daemon indexer may lag a few
+    // ms before getAddressVtxos reflects spent:true, so keep in-flight to prevent re-selection.
     for (const v of picked) {
-      releaseVtxo(v.id);
+      const timer = setTimeout(() => {
+        releaseVtxo(v.id);
+      }, 5_000);
+      if (typeof timer.unref === 'function') {
+        timer.unref();
+      }
     }
 
     return {
