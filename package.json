@@ -6,7 +6,7 @@
   "workspaces": ["packages/*", "apps/*"],
   "scripts": {
     "build": "npm run build --workspaces --if-present",
-    "stage-site": "rm -rf public && mkdir -p public/assets && cp apps/site/*.html public/ && cp apps/site/home.html public/index.html && cp apps/site/assets/style.css public/assets/style.css && cp apps/site/run-evidence.json apps/site/openapi.json apps/site/services.json apps/site/llms.txt public/",
+    "stage-site": "rm -rf public && mkdir -p public/assets && cp apps/site/*.html public/ && cp apps/site/home.html public/index.html && cp apps/site/assets/style.css public/assets/style.css && cp apps/site/favicon.svg apps/site/og.svg apps/site/run-evidence.json apps/site/openapi.json apps/site/services.json apps/site/llms.txt public/",
     "test": "npm test --workspaces --if-present",
     "test:live": "npm run test:live --workspaces --if-present",
     "cold-start": "node demo/cold-start.mjs",

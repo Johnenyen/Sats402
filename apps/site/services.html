@@ -5,10 +5,20 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Services — Sats402</title>
 <meta name="description" content="Live services agents buy with sats per call: market data, mempool data, network data, and grounded AI inference." />
+<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 <link rel="stylesheet" href="/assets/style.css" />
+<meta property="og:title" content="Sats402 — what agents buy, priced in sats" />
+<meta property="og:description" content="Four live x402 services: market data, fee estimates, network state, and grounded AI inference. Pay per call, no accounts." />
+<meta property="og:url" content="https://sats402.vercel.app/services" />
+<meta property="og:type" content="website" />
+<meta property="og:image" content="https://sats402.vercel.app/og.svg" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="Sats402 — what agents buy, priced in sats" />
+<meta name="twitter:description" content="Four live x402 services. Pay per call, no accounts." />
+<meta name="twitter:image" content="https://sats402.vercel.app/og.svg" />
 </head>
 <body>
 
@@ -36,10 +46,10 @@
       retry. No accounts, no API keys, no subscriptions.
     </p>
     <div class="features">
-      <span class="feature"><span class="k" style="background:var(--ok)"></span>Live upstreams</span>
-      <span class="feature"><span class="k" style="background:var(--accent)"></span>5 sats per data call</span>
-      <span class="feature"><span class="k" style="background:var(--accent-2)"></span>50 sats per inference call</span>
-      <span class="feature"><span class="k" style="background:#d97706"></span>Every call leaves a receipt</span>
+      <span class="feature">Live upstreams</span>
+      <span class="feature">5 sats per data call</span>
+      <span class="feature">50 sats per inference call</span>
+      <span class="feature">Every call leaves a receipt</span>
     </div>
   </div>
 
@@ -114,7 +124,7 @@
      { "question": "What is the recommended fee right now?" }
 → 402  PAYMENT-REQUIRED: challenge (50 sats)
 → 200  { "answer": "…", "paid_data": { … live data it bought … },
-         "data_purchase": { "amountSats": "5", "tx": "c9f3a97a…" } }</pre>
+         "data_purchase": { "amountSats": "5", "tx": "99296e2fdf89f724…" } }</pre>
     <div class="cta">
       <a class="btn btn-primary" href="/demo?target=inference">Try it with the demo agent</a>
       <a class="btn btn-ghost" href="/verify">Verify a receipt</a>
@@ -141,8 +151,10 @@
       machine-readably: <a href="/services.json">services.json</a> lists every
       service with its price and category, and the full
       <a href="/openapi.json">OpenAPI 3.1 spec</a> describes the contracts.
-      The paywall guards rendered content too:
-      <a href="/api/protected">protected page example</a> (5 sats per view).
+      The paywall guards rendered content too: <code>GET /api/protected</code>
+      (5 sats per view; an agent receives the 402 challenge, settles on Tachi,
+      and retries with <code>PAYMENT-SIGNATURE</code> to receive the HTML page, or run
+      <code>node packages/cli/bin/sats402.mjs verify &lt;txid&gt;</code> to verify).
     </div>
   </div>
 

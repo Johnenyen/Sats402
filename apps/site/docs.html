@@ -5,8 +5,18 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Docs · Sats402</title>
   <meta name="description" content="Sats402 protocol: x402 pay-per-request payments in native sats on Tachi. Wire format, settlement, replay protection, verifier." />
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/assets/style.css" />
+  <meta property="og:title" content="Sats402 — the protocol, end to end" />
+  <meta property="og:description" content="x402 pay-per-request in native sats on Tachi: wire format, settlement, replay protection, and a keyless verifier." />
+  <meta property="og:url" content="https://sats402.vercel.app/docs" />
+  <meta property="og:type" content="website" />
+  <meta property="og:image" content="https://sats402.vercel.app/og.svg" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Sats402 — the protocol, end to end" />
+  <meta name="twitter:description" content="x402 in native sats on Tachi: wire format, settlement, keyless verification." />
+  <meta name="twitter:image" content="https://sats402.vercel.app/og.svg" />
 </head>
 <body>
   <nav class="nav">
@@ -47,29 +57,27 @@
 
       <h2 class="section-sub">Wire format</h2>
       <p class="p">Three x402 v2 headers, nothing more:</p>
-      <table>
+<div class="table-wrap"><table>
         <tbody>
           <tr><td><code>PAYMENT-REQUIRED</code></td><td>On the <b>402</b> response. Carries the challenge: price in sats, payee, network, validity window. Base64 JSON.</td></tr>
           <tr><td><code>PAYMENT-SIGNATURE</code></td><td>On the paid retry. Carries the payment payload: signature, authorization, and the settlement proof. Base64 JSON.</td></tr>
           <tr><td><code>PAYMENT-RESPONSE</code></td><td>On the successful <b>200</b>. Carries the settlement response for the client's records.</td></tr>
         </tbody>
-      </table>
+</table></div>
 
       <h2 class="section-sub">Payment scheme</h2>
       <p class="p">
         Sats402 uses the <code>exact</code> scheme with a Tachi network binding,
-        written from the x402 scheme template the same way the standard's
-        <code>scheme_exact_lnbtc.md</code> binds <code>exact</code> to Bitcoin
-        Lightning.
+        written from the x402 scheme template specification.
       </p>
-      <table>
+<div class="table-wrap"><table>
         <tbody>
           <tr><td>Network identifiers</td><td>CAIP-2-style in the <code>tachi</code> namespace, reference taken from the underlying Bitcoin network's genesis prefix (BIP-122 convention). Example: <code>tachi:0f9188f13cb7b2c71f2a335e3a4fc328</code> (tachi-regtest-1). The namespace is a proposal declared by this binding.</td></tr>
           <tr><td>Amounts</td><td>Sat strings. Atomic units. Exact match required: no rounding, no fees added, no tolerance.</td></tr>
           <tr><td>Payee</td><td>The payee's x-only owner key on the Tachi ledger. The same key owns the received output.</td></tr>
-          <tr><td>Binding</td><td>The payer's signature covers the complete challenge: network, amount, payee, resource, nonce, and validity window. A payment made for one request cannot be presented for another. Resource URLs are normalized on both sides before binding.</td></tr>
+          <tr><td>Binding</td><td>The payer's signature covers the complete challenge: network, amount, payee, resource, nonce, and validity window. The settlement transaction is verified separately against the daemon: it must exist, be committed, pay the payee, and be signed by the payer's key. A payment made for one request cannot be presented for another. Resource URLs are normalized on both sides before binding.</td></tr>
         </tbody>
-      </table>
+</table></div>
 
       <h2 class="section-sub">Settlement</h2>
       <p class="p">
@@ -83,9 +91,10 @@
 
       <h2 class="section-sub">Replay protection</h2>
       <p class="p">
-        Each settlement is consumed once, keyed by <code>network + ":" + tx_hash</code>
-        in a restart-durable store (<code>FileReplayStore</code> appends to disk;
-        the in-memory store is for tests and single runs). A settlement is never
+        Each settlement is consumed once, keyed by <code>network + ":" + tx_hash</code>.
+        Replay protection is restart-durable only when backed by an external persistent
+        store (such as Vercel KV or Upstash/Redis); without an external store, durability
+        is strictly in-process and bounded by instance lifetime. A settlement is never
         charged twice: a retry with the same proof returns the original response
         while the server still holds it (marked <code>X-Sats402-Replayed: 1</code>),
         and is rejected otherwise.
@@ -95,12 +104,12 @@
       <p class="p">Three ways, all read-only, none needing keys:</p>
       <div class="steps">
         <div class="step"><span class="pill">Web</span>Paste the tx id on the <a href="/verify">verify page</a>, or open <code>GET /receipt/&lt;txid&gt;</code> for JSON.</div>
-        <div class="step"><span class="pill">CLI</span><code>npx sats402 verify &lt;txid&gt; [--payee &lt;key&gt;] [--amount &lt;sats&gt;]</code></div>
+        <div class="step"><span class="pill">CLI</span><code>node packages/cli/bin/sats402.mjs verify &lt;txid&gt; [--payee &lt;key&gt;] [--amount &lt;sats&gt;]</code></div>
         <div class="step"><span class="pill">Library</span><code>@sats402/core/verify</code> — a keyless subpath: key material is excluded by construction, safe for verifiers and paywalls.</div>
       </div>
 
       <h2 class="section-sub">Errors</h2>
-      <table>
+<div class="table-wrap"><table>
         <tbody>
           <tr><td><code>402 invalid_payment_requirements</code></td><td>Wrong amount, wrong payee, or wrong network. Nothing is served.</td></tr>
           <tr><td><code>402 invalid_payment_payload</code></td><td>The payment is not bound to this request (URL, nonce, or resource mismatch).</td></tr>
@@ -108,7 +117,7 @@
           <tr><td><code>402 replay_detected</code></td><td>This settlement was already consumed.</td></tr>
           <tr><td><code>500 verification_unavailable</code></td><td>The daemon could not be read. Transient: retry. No settlement is consumed.</td></tr>
         </tbody>
-      </table>
+</table></div>
 
       <h2 class="section-sub">Quickstart</h2>
       <p class="p"><b>A paid endpoint</b> (Node, any framework via the middleware):</p>
@@ -121,15 +130,26 @@ export default paywall({
   replay: new FileReplayStore('/var/lib/sats402/replay.jsonl'),
   serve: (req, res) =&gt; res.end(JSON.stringify({ hello: 'paid' })),
 });</code></pre>
-      <p class="p"><b>An agent that pays</b>:</p>
+      <p class="p"><b>An agent that pays</b> (discover the payee from the challenge, then allow it):</p>
       <pre><code>import { Sats402Agent } from '@sats402/agent';
-import { deriveIdentity } from '@sats402/core';
+import { deriveIdentity, NETWORK_TACHI_REGTEST } from '@sats402/core';
+
+const DAEMON = 'https://rpc-regtest.tachibtc.com';
+const url = 'https://sats402.vercel.app/api/services/price';
+
+// Discover the payee from the 402 challenge with a plain call.
+const probe = await fetch(url);
+const challenge = JSON.parse(atob(probe.headers.get('payment-required')));
+const payTo = challenge.accepts[0].payTo;
 
 const agent = new Sats402Agent({
   identity: deriveIdentity(MNEMONIC, 'regtest', 0),
-  policy: { perCallCapSats: 60n, sessionBudgetSats: 400n },
+  daemonUrl: DAEMON,
+  network: NETWORK_TACHI_REGTEST,
+  policy: { perCallCapSats: 60n, sessionBudgetSats: 400n,
+            payeeAllowlist: [payTo] },
 });
-const res = await agent.fetch('https://sats402.vercel.app/api/services/price');
+const res = await agent.fetch(url);
 // 402 handled, tachi_tx settled, proof retried. Product in res.</code></pre>
       <div class="note">
         Runnable examples: <code>npm run demo:pay -- inference</code> (the agent

@@ -5,10 +5,20 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Verify — Sats402</title>
 <meta name="description" content="Verify any Sats402 settlement or payment payload against the Tachi daemon. Read-only: no keys, no wallet, no signing." />
+<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 <link rel="stylesheet" href="/assets/style.css" />
+<meta property="og:title" content="Sats402 — verify any settlement yourself" />
+<meta property="og:description" content="Paste a tx id and read the Tachi daemon record. Keyless, read-only, re-fetchable by anyone." />
+<meta property="og:url" content="https://sats402.vercel.app/verify" />
+<meta property="og:type" content="website" />
+<meta property="og:image" content="https://sats402.vercel.app/og.svg" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="Sats402 — verify any settlement yourself" />
+<meta name="twitter:description" content="Keyless, read-only, daemon-returned receipts." />
+<meta name="twitter:image" content="https://sats402.vercel.app/og.svg" />
 </head>
 <body>
 
@@ -39,6 +49,9 @@
       <input id="txid" placeholder="settlement transaction id (64 hex)" spellcheck="false" />
       <button class="btn btn-primary" id="go">Verify settlement</button>
     </div>
+    <p class="section-sub" style="margin-top:12px; margin-bottom:0;">
+      No tx id handy? <a href="#" id="example-tx">Verify a settlement from the recorded run</a>.
+    </p>
     <div class="result" id="result" style="display:none; margin-top:22px;">
       <span class="badge" id="badge"></span>
       <table id="table"></table>
@@ -66,20 +79,20 @@
     <p class="section-sub">
       One command. The same read-only check this page runs.
     </p>
-    <pre>npx sats402 verify &lt;txid&gt;
+    <pre>node packages/cli/bin/sats402.mjs verify &lt;txid&gt;
 
-settlement   37dd13293cf5fc6d…c86fe3a
+settlement   99296e2fdf89f7249584f5572829f32e52e1e780e64743ed75601e7c6acf512e
 state        committed   (daemon-returned)
-epoch        967206
+epoch        967603
 outputs
   6267b312b2ff30bf…a7702338f  5 sats
-  e7ab2537b5d49e97…a0b4f9c319  588 sats
+  55164f8d101788f3…8d3b00eb   58 sats
 spent inputs
-  e7ab2537b5d49e97…a0b4f9c319
+  55164f8d101788f3…8d3b00eb
 note: Record is daemon-returned and re-fetchable: anyone can repeat this lookup.</pre>
     <div class="note">
       Until the <code>sats402</code> package is published to npm, run it from a
-      checkout: <code>npm run verify -- &lt;txid&gt;</code>.
+      checkout: <code>node packages/cli/bin/sats402.mjs verify &lt;txid&gt;</code>.
     </div>
   </div>
 
@@ -134,6 +147,11 @@ note: Record is daemon-returned and re-fetchable: anyone can repeat this lookup.
   }
   $('go').addEventListener('click', lookUp);
   $('txid').addEventListener('keydown', (e) => { if (e.key === 'Enter') lookUp(); });
+  document.getElementById('example-tx').addEventListener('click', (e) => {
+    e.preventDefault();
+    $('txid').value = '99296e2fdf89f7249584f5572829f32e52e1e780e64743ed75601e7c6acf512e';
+    lookUp();
+  });
   const preset = new URLSearchParams(location.search).get('tx');
   if (preset) { $('txid').value = preset.trim().toLowerCase(); lookUp(); }
 

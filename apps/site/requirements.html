@@ -3,12 +3,22 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Requirements — Sats402</title>
-<meta name="description" content="Every Bounty #6 requirement mapped to a live, verifiable deliverable in Sats402. High-velocity, verifiable, and sovereign native sats settlement." />
+<title>Requirements · Sats402</title>
+<meta name="description" content="Every Bounty #6 requirement mapped to a live, verifiable deliverable in Sats402. 20/20 settled, verifiable, and sovereign native sats settlement." />
+<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 <link rel="stylesheet" href="/assets/style.css" />
+<meta property="og:title" content="Sats402 — every bounty requirement, met and proven" />
+<meta property="og:description" content="Every Bounty #6 requirement mapped to a live, verifiable deliverable: real tachi_tx settlements, re-fetchable by anyone." />
+<meta property="og:url" content="https://sats402.vercel.app/requirements" />
+<meta property="og:type" content="website" />
+<meta property="og:image" content="https://sats402.vercel.app/og.svg" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="Sats402 — every bounty requirement, met and proven" />
+<meta name="twitter:description" content="Real settlements, keyless verification, honest evidence." />
+<meta name="twitter:image" content="https://sats402.vercel.app/og.svg" />
 </head>
 <body>
 
@@ -38,7 +48,7 @@
 
     <div class="proof-strip">
       <div class="proof p1">
-        <b>High-velocity</b>
+        <b>20/20 settled</b>
         20/20 paid calls in a burst · p50 5,492 ms · p95 14,904 ms latency measured end-to-end.
       </div>
       <div class="proof p2">
@@ -68,14 +78,14 @@
 
     <div class="req-section-title">How Sats402 meets it</div>
     <p class="req-desc">
-      We built a complete, production-ready TypeScript/JavaScript SDK modularized across the <code>@sats402/*</code> package family: <code>@sats402/agent</code>, <code>@sats402/core</code>, <code>@sats402/express</code>, and <code>@sats402/verify</code>, alongside the standalone <code>sats402</code> CLI. The SDK gives autonomous agents native spending policies (per-call caps, session budgets, and payee allowlists) with automated 402 challenge negotiation, while furnishing paid services with zero-custody middleware. It natively powers both agent-to-service API purchases and autonomous agent-to-agent commerce.
+      We built a complete, production-ready TypeScript/JavaScript SDK modularized across the <code>@sats402/*</code> package family: <code>@sats402/agent</code>, <code>@sats402/core</code>, <code>@sats402/express</code>, and <code>@sats402/verify</code>, alongside the standalone <code>sats402</code> CLI. The SDK exposes an autonomous agent fetch client (<code>@sats402/agent</code>) with spending policies (per-call caps, session budgets, and payee allowlists) and automated 402 challenge negotiation, alongside zero-custody paywall middleware (<code>@sats402/express</code>). The agent-to-agent case is two independent key-holders—each running the agent client and paywall—where one agent signs and broadcasts its own <code>tachi_tx</code> on-chain to pay the other.
     </p>
 
     <div class="req-section-title">Proof</div>
     <p class="req-desc">
       The live demo loop contains one of each purchase type — demonstrating both <b>agent-to-service</b> AND <b>agent-to-agent</b> settlement on-chain:
     </p>
-    <table>
+    <div class="table-wrap"><table>
       <thead>
         <tr><th>Purchase Type</th><th>Flow</th><th>Amount</th><th>Settlement Transaction</th><th>Verification</th></tr>
       </thead>
@@ -96,13 +106,13 @@
         </tr>
         <tr>
           <td><span class="pill lav">agent-to-agent</span></td>
-          <td><b>Agent pays S2</b> (two agents settle directly, one paying the other)</td>
+          <td><b>Agent pays S2</b> (two independent key-holders settling on-chain, one paying the other)</td>
           <td>50 sats</td>
           <td><a class="mono" href="/verify?tx=378ba365e7d12db32e75f059998917626654c0c54d53375e0ed5dda6242066ef">378ba365e7d12db3…242066ef</a></td>
           <td><span class="badge b-ok">committed · epoch 967602</span></td>
         </tr>
       </tbody>
-    </table>
+    </table></div>
     <div class="note">
       <b>Deliverable packages:</b> <code>@sats402/agent</code> (autonomous client runtime + spend policies), <code>@sats402/core</code> (types, BIP-340 Schnorr signatures, payment binding), <code>@sats402/express</code> (custody-free paywall middleware), <code>@sats402/verify</code> (read-only settlement verification), and <code>sats402</code> (CLI inspector).
     </div>
@@ -190,7 +200,7 @@
     <p class="req-desc">
       Every settlement is daemon-returned and re-fetchable by any third party. Real on-chain settlements from recorded runs:
     </p>
-    <table>
+    <div class="table-wrap"><table>
       <thead>
         <tr><th>Transaction ID (tachi_tx)</th><th>Amount</th><th>Epoch</th><th>On-Chain State</th><th>Verification Interface</th></tr>
       </thead>
@@ -217,13 +227,11 @@
           <td><a href="/verify?tx=fff76b4df5e1c42a7ba6748cd799889b38d06ea2d98e2c2991c0da015ea0b9fd">Re-fetch on /verify →</a></td>
         </tr>
       </tbody>
-    </table>
+    </table></div>
     <div class="note">
       <b>Keyless verification across three channels:</b>
       1. Web: <code>/verify?tx=&lt;txid&gt;</code> live UI.<br />
-      2. CLI: <code>npm run verify -- &lt;txid&gt;</code> from a repo checkout
-      (the <code>sats402</code> npm package is pending publication, so the checkout
-      form is the runnable path today).<br />
+      2. CLI: <code>node packages/cli/bin/sats402.mjs verify &lt;txid&gt;</code> (or <code>npm run verify -- &lt;txid&gt;</code>).<br />
       3. REST: <code>GET /receipt/&lt;txid&gt;</code> returning daemon-confirmed JSON receipts.<br />
       The verifier never needs private keys, seed phrases, or custody permissions.
     </div>
@@ -253,7 +261,7 @@
 
     <div class="req-section-title">How Sats402 meets it</div>
     <p class="req-desc">
-      We built a complete, one-command example application runnable via <code>npm run cold-start</code> (source in <code>demo/cold-start.mjs</code>), supported by an interactive web demo at <code>/demo</code> and a CLI runner (<code>npm run demo:pay</code>). In the demo app, an autonomous agent queries an inference agent (S2) with a complex prompt; before answering, S2 autonomously purchases live fee telemetry from a daemon data service (S1), grounds its reasoning in the fresh facts, and serves the answer back to the buyer agent. The app tests multi-hop agent commerce, high-velocity bursts, and defensive policy boundaries.
+      We built a complete, one-command example application runnable via <code>npm run cold-start</code> (source in <code>demo/cold-start.mjs</code>), supported by an interactive web demo at <code>/demo</code> and a CLI runner (<code>npm run demo:pay</code>). In the demo app, an autonomous agent queries an inference agent (S2) with a complex prompt; before answering, S2 autonomously purchases live fee telemetry from a daemon data service (S1), grounds its reasoning in the fresh facts, and serves the answer back to the buyer agent. The app tests multi-hop agent commerce, a 20-call paid burst, and defensive policy boundaries.
     </p>
 
     <div class="req-section-title">Proof</div>
@@ -268,12 +276,12 @@
           The loop runs in <code>demo/cold-start.mjs</code> exactly as it executes:<br />
           <b>1. Agent asks S2 a question.</b> S2 cannot answer yet: it needs live network state.<br />
           <b>2. S2 pays S1 (5 sats):</b> the inference agent autonomously buys the live daemon fact before answering (agent-to-service).<br />
-          <b>3. Agent pays S2 (50 sats):</b> S2 delivers the grounded completion via <code>mistralai/ministral-14b</code>, and the two agents settle directly (agent-to-agent).<br />
+          <b>3. Agent pays S2 (50 sats):</b> S2 delivers the grounded completion, where two independent key-holders settle on-chain with the buyer signing and broadcasting a <code>tachi_tx</code> to pay S2.<br />
           <b>4. Burst (20 calls):</b> Agent reads S1 directly per call, each a separate paid request (agent-to-service).
         </p>
       </div>
       <div class="card">
-        <div class="card-head"><span class="tag">High-Velocity Burst</span><span class="price">20/20 paid</span></div>
+        <div class="card-head"><span class="tag">20-Call Burst</span><span class="price">20/20 paid</span></div>
         <h3>Live Measured Performance</h3>
         <p>
           <b>Burst count:</b> 20 consecutive paid requests settled on-chain.<br />
