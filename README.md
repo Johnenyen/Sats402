@@ -2,7 +2,7 @@
 
 **SDK and protocol for x402 pay-per-request payments in native sats on Tachi.**
 
-Sats402 enables autonomous AI agents to make high-frequency, low-value payments
+Sats402 enables autonomous AI agents to make low-value, pay-per-request payments
 using native sats on Tachi. An agent pays per request by signing and broadcasting
 its own `tachi_tx`; the service verifies the payment by reading the Tachi daemon.
 No custodian sits in the path.
