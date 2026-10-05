@@ -31,39 +31,92 @@
     <a href="/demo">Demo</a>
     <a href="/verify">Verify</a>
     <a href="/docs">Docs</a>
-    <a class="btn-nav" href="https://github.com/Johnenyen/Sats402" target="_blank" rel="noopener">GitHub</a>
+    <a class="nav-gh" href="https://github.com/Johnenyen/Sats402" target="_blank" rel="noopener">GitHub ↗</a>
   </div>
 </nav>
 
 <div class="wrap">
 
   <div class="frame">
-    <span class="eyebrow"><span class="dot"></span> Tachi hackathon · Bounty #6 · x402 on Bitcoin</span>
-    <h1>Pay-per-request,<br /><span class="grad">in native sats.</span></h1>
-    <p class="lede">
-      Sats402 is the SDK and protocol that enables autonomous AI agents to make
-      high-frequency, low-value payments using native sats on Tachi. An agent pays
-      for each call by signing its own transaction. The service verifies by reading
-      the chain. No accounts, no API keys, no custodian.
-    </p>
-    <div class="cta">
-      <a class="btn btn-primary" href="/demo">Run a real payment →</a>
-      <a class="btn btn-ghost" href="/services">Browse services</a>
-      <a class="btn btn-ghost" href="/verify">Verify a settlement</a>
+    <div class="hero-grid">
+      <div class="hero-text">
+        <span class="eyebrow"><span class="dot"></span> Tachi hackathon · Bounty #6 · x402 on Bitcoin</span>
+        <h1>Pay-per-request,<br /><span class="grad">in native sats.</span></h1>
+        <p class="hero-tagline">No accounts. No API keys. No custodian.</p>
+        <p class="lede">
+          Sats402 is the SDK and protocol that enables autonomous AI agents to make
+          pay-per-request micropayments using native sats on Tachi. An agent pays
+          for each call by signing its own transaction; the service verifies by
+          reading the chain. Settlement is committed on-chain in about 5.5s (Tachi
+          consensus finality). The HTTP round-trip is what the agent sees.
+        </p>
+        <div class="cta">
+          <a class="btn btn-primary" href="/demo">Run a real payment →</a>
+          <a class="cta-link" href="/services">Browse services →</a>
+          <a class="cta-link" href="/verify">Verify a settlement →</a>
+        </div>
+        <div class="hero-stat-row">
+          <div class="hero-stat-figure-col">
+            <div class="hero-stat-figure">20/20</div>
+            <div class="hero-stat-lbl">SETTLED ON-CHAIN</div>
+          </div>
+          <div class="hero-stat-desc">
+            <b>Request round-trip (what the agent sees):</b> sub-second to verify + serve; <b>5,492 ms p50</b> is on-chain settlement finality across 20 consecutive calls. Re-fetchable by anyone.
+          </div>
+        </div>
+      </div>
+
+      <div class="hero-aside">
+        <div class="receipt-card">
+          <div class="receipt-header">
+            <span class="tag">Live Receipt · Tachi Settlement</span>
+            <span class="badge b-ok">committed</span>
+          </div>
+          <div class="receipt-amount-row">
+            <div class="receipt-amount-val">50 <span>sats</span></div>
+            <span class="pill lav">agent-to-agent</span>
+          </div>
+          <div class="receipt-fields">
+            <div class="receipt-field">
+              <span class="lbl">Tx ID</span>
+              <span class="val"><a href="/verify?tx=378ba365e7d12db32e75f059998917626654c0c54d53375e0ed5dda6242066ef">378ba365e7d1…242066ef</a></span>
+            </div>
+            <div class="receipt-field">
+              <span class="lbl">Epoch</span>
+              <span class="val">967602</span>
+            </div>
+            <div class="receipt-field">
+              <span class="lbl">Network</span>
+              <span class="val">tachi-regtest-1</span>
+            </div>
+            <div class="receipt-field">
+              <span class="lbl">Scheme</span>
+              <span class="val">exact · tachi_tx</span>
+            </div>
+            <div class="receipt-field">
+              <span class="lbl">Latency</span>
+              <span class="val">sub-second serve · 5,492 ms finality</span>
+            </div>
+          </div>
+          <div class="receipt-foot">
+            <span>Daemon-returned · re-fetchable</span>
+            <a href="/verify?tx=378ba365e7d12db32e75f059998917626654c0c54d53375e0ed5dda6242066ef">Verify tx →</a>
+          </div>
+        </div>
+      </div>
     </div>
-    <div class="features">
-      <span class="feature">Pay-per-call</span>
-      <span class="feature">No accounts ever</span>
-      <span class="feature">Verifiable receipts</span>
-      <span class="feature">Agent spend policy</span>
-      <span class="feature">Sovereign keys</span>
-      <span class="feature">OpenAPI 3.1</span>
-      <span class="feature">Machine-readable catalog</span>
-    </div>
+
     <div class="proof-strip">
-      <div class="proof p1"><b>20/20 settled</b>5,492 ms p50 latency measured end to end across 20 calls.</div>
-      <div class="proof p2"><b>Verifiable</b>Every receipt is a tx id anyone can re-fetch from the daemon.</div>
+      <div class="proof p1"><b>20/20 settled</b>Request round-trip (what the agent sees): sub-second to verify + serve; finality: 5,492 ms p50 on-chain.</div>
+      <div class="proof p2"><b>Verifiable</b>Every receipt is a transaction ID anyone can re-fetch from the daemon.</div>
       <div class="proof p3"><b>Sovereign</b>The key that owns the sats signs the payment. Verifiers hold no key.</div>
+    </div>
+
+    <div class="features">
+      <span class="feature"><span class="k" style="background:var(--accent)"></span> Agent spend policy</span>
+      <span class="feature"><span class="k" style="background:#15803d"></span> Zero-custody paywall</span>
+      <span class="feature"><span class="k" style="background:var(--accent-2)"></span> OpenAPI 3.1 contracts</span>
+      <span class="feature"><span class="k" style="background:#0369a1"></span> Machine-readable catalog</span>
     </div>
   </div>
 
@@ -88,25 +141,25 @@
     </p>
     <div class="grid g2">
       <div class="card">
-        <div class="card-head"><span class="tag">Market data</span><span class="price">5 sats</span></div>
+        <div class="card-head"><span class="tag">Market data</span><span class="price">5 sats / call</span></div>
         <h3>BTC market price feed</h3>
         <p>Live BTC price in USD with 24-hour change, sourced from CoinGecko.</p>
         <a class="live-link" href="/services#price">Endpoint →</a>
       </div>
       <div class="card">
-        <div class="card-head"><span class="tag">Mempool data</span><span class="price">5 sats</span></div>
+        <div class="card-head"><span class="tag">Mempool data</span><span class="price">5 sats / call</span></div>
         <h3>Bitcoin fee estimates</h3>
         <p>The live next-block fee ladder: fastest, half-hour, hour, economy.</p>
         <a class="live-link" href="/services#fees">Endpoint →</a>
       </div>
       <div class="card">
-        <div class="card-head"><span class="tag">Network data</span><span class="price">5 sats</span></div>
+        <div class="card-head"><span class="tag">Network data</span><span class="price">5 sats / call</span></div>
         <h3>Tachi network state</h3>
         <p>Settlement-layer state: ledger fee, epoch height, network. Read live from the Tachi daemon.</p>
         <a class="live-link" href="/services#network">Endpoint →</a>
       </div>
       <div class="card">
-        <div class="card-head"><span class="tag">Inference</span><span class="price">50 sats</span></div>
+        <div class="card-head"><span class="tag">Inference</span><span class="price">50 sats / call</span></div>
         <h3>Grounded AI completion</h3>
         <p>A model call grounded in live data it bought itself, in the same request.</p>
         <a class="live-link" href="/services#inference">Endpoint →</a>

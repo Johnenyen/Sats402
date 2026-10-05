@@ -31,7 +31,7 @@
     <a href="/demo">Demo</a>
     <a href="/verify">Verify</a>
     <a href="/docs">Docs</a>
-    <a class="btn-nav" href="https://github.com/Johnenyen/Sats402" target="_blank" rel="noopener">GitHub</a>
+    <a class="nav-gh" href="https://github.com/Johnenyen/Sats402" target="_blank" rel="noopener">GitHub ↗</a>
   </div>
 </nav>
 
@@ -45,26 +45,72 @@
       then the model. Every endpoint speaks x402: call it, pay the challenge,
       retry. No accounts, no API keys, no subscriptions.
     </p>
+
+    <!-- Price Summary Grid in Hero (Clean 2-Column Mini Table) -->
+    <div class="price-hero-grid">
+      <div class="price-hero-col">
+        <div class="price-hero-heading">
+          <span class="pill blue">Data feeds</span>
+          <span class="price-hero-rate">5 sats / call</span>
+        </div>
+        <div class="price-hero-sub">BTC price, fee estimates, network state</div>
+      </div>
+      <div class="price-hero-col">
+        <div class="price-hero-heading">
+          <span class="pill lav">AI inference</span>
+          <span class="price-hero-rate">50 sats / call</span>
+        </div>
+        <div class="price-hero-sub">Grounded completion with live upstream daemon fact</div>
+      </div>
+    </div>
+
+    <!-- Hero CTAs (Item 16) -->
+    <div class="cta" style="margin-top:20px;">
+      <a class="btn btn-primary" href="/demo">Run a real payment →</a>
+      <a class="btn btn-ghost" href="/docs">Read the docs</a>
+      <a class="btn btn-ghost" href="/openapi.json" target="_blank">OpenAPI 3.1 contract ↗</a>
+    </div>
+
     <div class="features">
       <span class="feature">Live upstreams</span>
-      <span class="feature">5 sats per data call</span>
-      <span class="feature">50 sats per inference call</span>
+      <span class="feature">Atomic sat payments</span>
+      <span class="feature">Zero accounts</span>
       <span class="feature">Every call leaves a receipt</span>
     </div>
   </div>
 
   <div class="frame" id="price">
-    <div class="card-head" style="margin-bottom:10px">
-      <span class="pill lav">Market data</span><span class="price">5 sats / call</span>
+    <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px;">
+      <div>
+        <span class="pill blue">Market data</span>
+        <h2 style="margin:8px 0 0">BTC market price feed</h2>
+      </div>
+      <div class="card-price-hero">5 <span>sats / call</span></div>
     </div>
-    <h2>BTC market price feed</h2>
     <p class="section-sub">
       The number agents check most: live BTC price in USD with 24-hour change.
       Upstream is the CoinGecko public API, read at request time.
     </p>
     <pre>GET https://sats402.vercel.app/api/services/price
-→ 402  PAYMENT-REQUIRED: challenge (5 sats, network tachi:0f9188…, payTo …)
-→ 200  { "asset": "bitcoin", "usd": 84736, "usd_24h_change_pct": -1.46, "source": "CoinGecko public API" }</pre>
+
+→ 402 PAYMENT-REQUIRED
+  {
+    "x402Version": 2,
+    "accepts": [{
+      "scheme": "exact",
+      "network": "tachi:0f9188f13cb7b2c71f2a335e3a4fc328",
+      "amount": "5",
+      "payTo": "6267b312b2ff30bf…a7702338f"
+    }]
+  }
+
+→ 200 OK (with PAYMENT-RESPONSE)
+  {
+    "asset": "bitcoin",
+    "usd": 84736,
+    "usd_24h_change_pct": -1.46,
+    "source": "CoinGecko public API"
+  }</pre>
     <div class="cta">
       <a class="btn btn-primary" href="/demo?target=data">Try it with the demo agent</a>
       <a class="btn btn-ghost" href="/verify">Verify a receipt</a>
@@ -72,18 +118,40 @@
   </div>
 
   <div class="frame" id="fees">
-    <div class="card-head" style="margin-bottom:10px">
-      <span class="pill lime">Mempool data</span><span class="price">5 sats / call</span>
+    <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px;">
+      <div>
+        <span class="pill lime">Mempool data</span>
+        <h2 style="margin:8px 0 0">Bitcoin fee estimates</h2>
+      </div>
+      <div class="card-price-hero">5 <span>sats / call</span></div>
     </div>
-    <h2>Bitcoin fee estimates</h2>
     <p class="section-sub">
       The live next-block fee ladder: fastest, half-hour, hour, economy, minimum.
       Upstream is the mempool.space public API. This is the data an agent needs
       before it moves money.
     </p>
     <pre>GET https://sats402.vercel.app/api/services/fees
-→ 402  PAYMENT-REQUIRED: challenge (5 sats)
-→ 200  { "unit": "sat/vB", "fastest": 5, "half_hour": 4, "hour": 3, "economy": 2, "minimum": 1, "source": "mempool.space public API" }</pre>
+
+→ 402 PAYMENT-REQUIRED
+  {
+    "x402Version": 2,
+    "accepts": [{
+      "scheme": "exact",
+      "network": "tachi:0f9188f13cb7b2c71f2a335e3a4fc328",
+      "amount": "5"
+    }]
+  }
+
+→ 200 OK (with PAYMENT-RESPONSE)
+  {
+    "unit": "sat/vB",
+    "fastest": 5,
+    "half_hour": 4,
+    "hour": 3,
+    "economy": 2,
+    "minimum": 1,
+    "source": "mempool.space public API"
+  }</pre>
     <div class="cta">
       <a class="btn btn-primary" href="/demo?target=fees">Try it with the demo agent</a>
       <a class="btn btn-ghost" href="/verify">Verify a receipt</a>
@@ -91,18 +159,38 @@
   </div>
 
   <div class="frame" id="network">
-    <div class="card-head" style="margin-bottom:10px">
-      <span class="pill peach">Network data</span><span class="price">5 sats / call</span>
+    <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px;">
+      <div>
+        <span class="pill blue">Network data</span>
+        <h2 style="margin:8px 0 0">Tachi network state</h2>
+      </div>
+      <div class="card-price-hero">5 <span>sats / call</span></div>
     </div>
-    <h2>Tachi network state</h2>
     <p class="section-sub">
       Settlement-layer state for the network the money moves on: ledger fee,
       epoch height, network. Read live from the Tachi daemon with no cache. An
       agent settles on Tachi, so this is the fee data that actually applies.
     </p>
     <pre>GET https://sats402.vercel.app/api/services/network
-→ 402  PAYMENT-REQUIRED: challenge (5 sats)
-→ 200  { "ledger_fee_sat": {"recommended_fee_sat": 1}, "epoch_height": "967207", "network": "tachi-regtest-1" }</pre>
+
+→ 402 PAYMENT-REQUIRED
+  {
+    "x402Version": 2,
+    "accepts": [{
+      "scheme": "exact",
+      "network": "tachi:0f9188f13cb7b2c71f2a335e3a4fc328",
+      "amount": "5"
+    }]
+  }
+
+→ 200 OK (with PAYMENT-RESPONSE)
+  {
+    "ledger_fee_sat": {
+      "recommended_fee_sat": 1
+    },
+    "epoch_height": "967207",
+    "network": "tachi-regtest-1"
+  }</pre>
     <div class="cta">
       <a class="btn btn-primary" href="/demo?target=network">Try it with the demo agent</a>
       <a class="btn btn-ghost" href="/verify">Verify a receipt</a>
@@ -110,10 +198,13 @@
   </div>
 
   <div class="frame" id="inference">
-    <div class="card-head" style="margin-bottom:10px">
-      <span class="pill lav">Inference</span><span class="price">50 sats / call</span>
+    <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px;">
+      <div>
+        <span class="pill lav">Inference</span>
+        <h2 style="margin:8px 0 0">Grounded AI completion</h2>
+      </div>
+      <div class="card-price-hero">50 <span>sats / call</span></div>
     </div>
-    <h2>Grounded AI completion</h2>
     <p class="section-sub">
       A model call that is grounded in live data it bought itself. This service
       is an agent with its own key and its own spend policy: it cannot answer
@@ -121,10 +212,30 @@
       One request, two purchase types.
     </p>
     <pre>POST https://sats402.vercel.app/api/services/inference
-     { "question": "What is the recommended fee right now?" }
-→ 402  PAYMENT-REQUIRED: challenge (50 sats)
-→ 200  { "answer": "…", "paid_data": { … live data it bought … },
-         "data_purchase": { "amountSats": "5", "tx": "99296e2fdf89f724…" } }</pre>
+{ "question": "What is the recommended fee right now?" }
+
+→ 402 PAYMENT-REQUIRED
+  {
+    "x402Version": 2,
+    "accepts": [{
+      "scheme": "exact",
+      "network": "tachi:0f9188f13cb7b2c71f2a335e3a4fc328",
+      "amount": "50"
+    }]
+  }
+
+→ 200 OK (with PAYMENT-RESPONSE)
+  {
+    "answer": "Current recommended fee is 1 sat/vB (per live daemon data)...",
+    "paid_data": {
+      "ledger_fee_sat": { "recommended_fee_sat": 1 },
+      "epoch_height": "967207"
+    },
+    "data_purchase": {
+      "amountSats": "5",
+      "tx": "99296e2fdf89f7249584f5572829f32e52e1e780e64743ed75601e7c6acf512e"
+    }
+  }</pre>
     <div class="cta">
       <a class="btn btn-primary" href="/demo?target=inference">Try it with the demo agent</a>
       <a class="btn btn-ghost" href="/verify">Verify a receipt</a>

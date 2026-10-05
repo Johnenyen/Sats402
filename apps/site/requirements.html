@@ -31,45 +31,101 @@
     <a href="/demo">Demo</a>
     <a href="/verify">Verify</a>
     <a href="/docs">Docs</a>
-    <a class="btn-nav" href="https://github.com/Johnenyen/Sats402" target="_blank" rel="noopener">GitHub</a>
+    <a class="nav-gh" href="https://github.com/Johnenyen/Sats402" target="_blank" rel="noopener">GitHub ↗</a>
   </div>
 </nav>
 
 <div class="wrap">
 
-  <!-- Header Frame -->
+  <!-- Header Frame: Requirements Checklist & Status First -->
   <div class="frame">
     <span class="eyebrow"><span class="dot"></span> Tachi OP_Freedom · Bounty #6</span>
-    <h1>Requirements,<br /><span class="grad">met and proven.</span></h1>
-    <p class="lede">
-      Every bounty requirement mapped to a live, verifiable deliverable.
-      No mock, no simulated settlement.
+    <h1 style="margin-bottom:8px">Bounty Requirements Matrix</h1>
+    <p class="section-sub" style="margin-bottom:14px">
+      Every Bounty #6 requirement mapped to a live, verifiable deliverable with real on-chain settlement.
     </p>
+
+    <div class="req-status-strip">
+      <div style="font-weight:700; color:var(--ink)">
+        <b>Status:</b> 4 / 4 requirements met · all settlement verifiable
+      </div>
+      <div class="req-status-chips">
+        <span class="badge b-ok">MET · REAL</span>
+        <span class="badge b-lav">100% REAL SETTLEMENT</span>
+        <span class="badge b-wait">ZERO CUSTODY</span>
+      </div>
+    </div>
+    <div class="req-status-legend">
+      <b>Status vocabulary:</b> <code>MET · REAL</code> = implemented in code, settled on-chain, re-fetchable by anyone.
+    </div>
+
+    <div class="table-wrap" style="margin-bottom:24px">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:28%">Bounty Requirement (Verbatim)</th>
+            <th style="width:14%">Status</th>
+            <th style="width:44%">Proof Pointer</th>
+            <th style="width:14%">Jump</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><b>“SDK for agent-to-agent and agent-to-service payments”</b></td>
+            <td><span class="badge b-ok">MET · REAL</span></td>
+            <td>Modular <code>@sats402/*</code> SDK; live agent-to-service (5 sats) &amp; agent-to-agent (50 sats) settlements via <code>tachi_tx</code></td>
+            <td><a class="live-link" style="margin:0" href="#req-1">Details ↓</a></td>
+          </tr>
+          <tr>
+            <td><b>“Support for x402 / pay-per-request pattern”</b></td>
+            <td><span class="badge b-ok">MET · REAL</span></td>
+            <td>Standard <code>PAYMENT-REQUIRED</code> / <code>PAYMENT-SIGNATURE</code> / <code>PAYMENT-RESPONSE</code> headers, <code>exact</code> scheme, <code>openapi.json</code> (OpenAPI 3.1)</td>
+            <td><a class="live-link" style="margin:0" href="#req-2">Details ↓</a></td>
+          </tr>
+          <tr>
+            <td><b>“Native sats settlement on Tachi”</b></td>
+            <td><span class="badge b-ok">MET · REAL</span></td>
+            <td>Native <code>tachi_tx</code> broadcast directly by agent; 3 keyless verification channels: <code>/verify</code> (Web), <code>sats402 verify</code> (CLI), <code>/receipt/:txid</code> (REST)</td>
+            <td><a class="live-link" style="margin:0" href="#req-3">Details ↓</a></td>
+          </tr>
+          <tr>
+            <td><b>“Example app (agent paying for API/model/data/service)”</b></td>
+            <td><span class="badge b-ok">MET · REAL</span></td>
+            <td><code>demo/cold-start.mjs</code>: inference agent buys data to ground answer; <code>20 / 20</code> burst settled; <code>PolicyError</code> bounds</td>
+            <td><a class="live-link" style="margin:0" href="#req-4">Details ↓</a></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
 
     <div class="proof-strip">
       <div class="proof p1">
-        <b>20/20 settled</b>
-        20/20 paid calls in a burst · p50 5,492 ms · p95 14,904 ms latency measured end-to-end.
+        <b>Settlement Finality Metrics</b>
+        <div class="metrics-stat-table">
+          <div class="metrics-stat-row"><span class="lbl">Burst settlement:</span><span class="num">20 / 20 (100%)</span></div>
+          <div class="metrics-stat-row"><span class="lbl">p50 commit finality:</span><span class="num">5,492 ms</span></div>
+          <div class="metrics-stat-row"><span class="lbl">p95 commit finality:</span><span class="num">14,904 ms</span></div>
+          <div class="metrics-stat-row"><span class="lbl">Max commit finality:</span><span class="num">32,473 ms</span></div>
+        </div>
       </div>
       <div class="proof p2">
-        <b>Verifiable</b>
-        Every receipt is a transaction ID re-fetchable from the daemon via Web (/verify), CLI (sats402 verify), or JSON API (/receipt/:txid).
+        <b>Verifiable Channels</b>
+        Every receipt is a transaction ID re-fetchable from the daemon via Web (<code>/verify</code>), CLI (<code>sats402 verify</code>), or JSON API (<code>/receipt/:txid</code>). Keyless by construction.
       </div>
       <div class="proof p3">
-        <b>Sovereign</b>
-        Agent self-signs and broadcasts tachi_tx. Zero private keys held by the verifier or paywall middleware.
+        <b>Sovereign Architecture</b>
+        Agent self-signs and broadcasts native <code>tachi_tx</code>. Paywall and verifier hold zero private keys and exercise zero custody.
       </div>
     </div>
   </div>
 
   <!-- Requirement 01 -->
-  <div class="frame">
+  <div class="frame" id="req-1">
     <div class="req-header">
       <div class="req-meta">
         <span class="pill lav">Bounty Requirement 01</span>
         <h2>SDK for Agent Payments</h2>
       </div>
-      <div class="req-num">01</div>
     </div>
 
     <div class="req-quote">
@@ -91,14 +147,14 @@
       </thead>
       <tbody>
         <tr>
-          <td><span class="pill peach">agent-to-service</span></td>
+          <td><span class="pill blue">agent-to-service</span></td>
           <td><b>Agent pays S1</b> (live daemon state feed)</td>
           <td>5 sats</td>
           <td><a class="mono" href="/verify?tx=fff76b4df5e1c42a7ba6748cd799889b38d06ea2d98e2c2991c0da015ea0b9fd">fff76b4df5e1c42a…ea0b9fd</a></td>
           <td><span class="badge b-ok">committed · 20/20 burst</span></td>
         </tr>
         <tr>
-          <td><span class="pill peach">agent-to-service</span></td>
+          <td><span class="pill blue">agent-to-service</span></td>
           <td><b>S2 pays S1</b> (inference agent buys facts before answering)</td>
           <td>5 sats</td>
           <td><a class="mono" href="/verify?tx=99296e2fdf89f7249584f5572829f32e52e1e780e64743ed75601e7c6acf512e">99296e2fdf89f724…acf512e</a></td>
@@ -128,13 +184,12 @@
   </div>
 
   <!-- Requirement 02 -->
-  <div class="frame">
+  <div class="frame" id="req-2">
     <div class="req-header">
       <div class="req-meta">
         <span class="pill lav">Bounty Requirement 02</span>
         <h2>Standard x402 Protocol Support</h2>
       </div>
-      <div class="req-num">02</div>
     </div>
 
     <div class="req-quote">
@@ -178,13 +233,12 @@
   </div>
 
   <!-- Requirement 03 -->
-  <div class="frame">
+  <div class="frame" id="req-3">
     <div class="req-header">
       <div class="req-meta">
         <span class="pill lav">Bounty Requirement 03</span>
         <h2>Native Sats Settlement on Tachi</h2>
       </div>
-      <div class="req-num">03</div>
     </div>
 
     <div class="req-quote">
@@ -246,13 +300,12 @@
   </div>
 
   <!-- Requirement 04 -->
-  <div class="frame">
+  <div class="frame" id="req-4">
     <div class="req-header">
       <div class="req-meta">
         <span class="pill lav">Bounty Requirement 04</span>
         <h2>Example Application</h2>
       </div>
-      <div class="req-num">04</div>
     </div>
 
     <div class="req-quote">
@@ -285,8 +338,8 @@
         <h3>Live Measured Performance</h3>
         <p>
           <b>Burst count:</b> 20 consecutive paid requests settled on-chain.<br />
-          <b>p50 latency:</b> 5,492 ms end-to-end.<br />
-          <b>p95 latency:</b> 14,904 ms · <b>Max:</b> 32,473 ms.<br />
+          <b>p50 on-chain finality:</b> 5,492 ms (Tachi consensus commit time).<br />
+          <b>p95 on-chain finality:</b> 14,904 ms · <b>Max:</b> 32,473 ms.<br />
           All 20 individual transaction hashes recorded in <code>run-evidence.json</code> and live-linked.
         </p>
       </div>
