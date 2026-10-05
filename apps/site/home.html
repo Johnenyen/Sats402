@@ -27,8 +27,7 @@
   <div class="links">
     <a class="active" href="/">Home</a>
     <a href="/requirements">Requirements</a>
-    <a href="/services">Services</a>
-    <a href="/demo">Demo</a>
+    <a href="/services">Try it</a>
     <a href="/verify">Verify</a>
     <a href="/docs">Docs</a>
     <a class="nav-gh" href="https://github.com/Johnenyen/Sats402" target="_blank" rel="noopener">GitHub ↗</a>
@@ -51,7 +50,7 @@
           consensus finality). The HTTP round-trip is what the agent sees.
         </p>
         <div class="cta">
-          <a class="btn btn-primary" href="/demo">Run a real payment →</a>
+          <a class="btn btn-primary" href="/services">Run a real payment →</a>
           <a class="cta-link" href="/services">Browse services →</a>
           <a class="cta-link" href="/verify">Verify a settlement →</a>
         </div>
@@ -125,48 +124,25 @@
   </div>
 
   <div class="frame">
-    <h2>Three requests, no dashboard</h2>
-    <p class="section-sub">
-      The same flow every paid API in this ecosystem uses. Nothing to sign up for,
-      nothing to configure.
-    </p>
-    <div class="steps">
-      <div class="step"><div class="n">1</div><p><b>Call the endpoint.</b> The service answers <code>402</code> with its price in sats and a payment challenge.</p></div>
-      <div class="step"><div class="n">2</div><p><b>Sign a payment.</b> The agent checks its own spending policy, then signs and broadcasts its own <code>tachi_tx</code> for exactly the price asked.</p></div>
-      <div class="step"><div class="n">3</div><p><b>Retry and get paid data.</b> The retried request carries the payment proof. The service verifies it against the chain and responds <code>200</code>.</p></div>
+    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px; margin-bottom:20px;">
+      <div>
+        <span class="eyebrow" style="margin-bottom:6px;"><span class="dot"></span> Live services &amp; demo</span>
+        <h2 style="margin:0;">Four live services, priced in sats, each one runnable.</h2>
+      </div>
+      <a class="btn btn-primary" href="/services">Run a real payment →</a>
     </div>
-  </div>
-
-  <div class="frame">
-    <h2>What agents buy</h2>
-    <p class="section-sub">
-      Four live services, priced in sats, each with a public endpoint any
-      x402-style client can call. Data feeds first, then the model.
-    </p>
-    <div class="grid g2">
-      <div class="card">
-        <div class="card-head"><span class="tag">Market data</span><span class="price">5 sats / call</span></div>
-        <h3>BTC market price feed</h3>
-        <p>Live BTC price in USD with 24-hour change, sourced from CoinGecko.</p>
-        <a class="live-link" href="/services#price">Endpoint →</a>
+    <div class="demo-mini-steps">
+      <div class="demo-mini-step">
+        <b>1. Challenge (402)</b>
+        Service issues price in sats and payee key on first request.
       </div>
-      <div class="card">
-        <div class="card-head"><span class="tag">Mempool data</span><span class="price">5 sats / call</span></div>
-        <h3>Bitcoin fee estimates</h3>
-        <p>The live next-block fee ladder: fastest, half-hour, hour, economy.</p>
-        <a class="live-link" href="/services#fees">Endpoint →</a>
+      <div class="demo-mini-step">
+        <b>2. Settlement (tachi_tx)</b>
+        Agent validates policy, signs, and broadcasts native sats transaction.
       </div>
-      <div class="card">
-        <div class="card-head"><span class="tag">Network data</span><span class="price">5 sats / call</span></div>
-        <h3>Tachi network state</h3>
-        <p>Settlement-layer state: ledger fee, epoch height, network. Read live from the Tachi daemon.</p>
-        <a class="live-link" href="/services#network">Endpoint →</a>
-      </div>
-      <div class="card">
-        <div class="card-head"><span class="tag">Inference</span><span class="price">50 sats / call</span></div>
-        <h3>Grounded AI completion</h3>
-        <p>A model call grounded in live data it bought itself, in the same request.</p>
-        <a class="live-link" href="/services#inference">Endpoint →</a>
+      <div class="demo-mini-step">
+        <b>3. Delivery (200)</b>
+        Service verifies daemon settlement and delivers response with receipt.
       </div>
     </div>
   </div>

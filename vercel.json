@@ -13,6 +13,9 @@
     "api/receipt/[txid].mjs": { "maxDuration": 30 },
     "api/verify-payment.mjs": { "maxDuration": 30 }
   },
+  "redirects": [
+    { "source": "/demo", "destination": "/services", "permanent": false }
+  ],
   "rewrites": [
     { "source": "/receipts", "destination": "/verify" },
     { "source": "/receipt/:txid", "destination": "/api/receipt/:txid" }
