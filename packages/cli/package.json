@@ -6,9 +6,15 @@
   "bin": {
     "sats402": "./bin/sats402.mjs"
   },
-  "files": ["bin", "README.md"],
+  "files": [
+    "bin",
+    "README.md"
+  ],
   "license": "MIT",
   "dependencies": {
     "@sats402/verify": "file:../verify"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.2"
   }
 }

@@ -82,6 +82,7 @@ export async function topUpFromFaucet(
   try {
     const res = await fetch(`${faucetUrl.replace(/\/$/, '')}/api/faucet`, {
       method: 'POST',
+      signal: AbortSignal.timeout(10_000),
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         address: address.trim(),

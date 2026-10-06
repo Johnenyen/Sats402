@@ -73,11 +73,24 @@ Replay protection is in-process memory by default; durable across restarts only
 when configured with a persistent KV/Redis store (`KV_REST_API_URL` or
 `UPSTASH_REDIS_REST_URL`).
 
-## Example app
+## Quickstart & Example app
 
-One command runs the whole loop, live:
+Install dependencies and build:
 
+```bash
+npm install
+npm run build
 ```
+
+Run the test suite:
+
+```bash
+npm test
+```
+
+Run the complete example app live:
+
+```bash
 npm run cold-start
 ```
 

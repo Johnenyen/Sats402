@@ -11,7 +11,10 @@
       "import": "./dist/index.js"
     }
   },
-  "files": ["dist", "README.md"],
+  "files": [
+    "dist",
+    "README.md"
+  ],
   "license": "MIT",
   "scripts": {
     "build": "tsc -p tsconfig.json"
@@ -20,7 +23,7 @@
     "@sats402/core": "file:../core"
   },
   "devDependencies": {
-    "typescript": "^7.0.2",
-    "@types/node": "^25.0.0"
+    "@types/node": "^25.0.0",
+    "typescript": "^5.8.2"
   }
 }
