@@ -266,6 +266,9 @@ export default async function handler(req, res) {
           verify_command: receipt?.transaction
             ? `node packages/cli/bin/sats402.mjs verify ${receipt.transaction}`
             : null,
+          explorer_url: receipt?.transaction
+            ? `https://regtest.tachibtcscan.com/tx/${receipt.transaction}`
+            : null,
         },
         null,
         2

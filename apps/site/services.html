@@ -513,7 +513,10 @@
     }
     html += '</div>';
     if (receipt.txHash) {
-      html += '<div class="row" style="font-size:13px"><a class="btn btn-ghost" style="padding:9px 15px;font-size:13px;border-radius:12px" href="/verify?tx=' + esc(receipt.txHash) + '">Verify this settlement →</a></div>';
+      html += '<div class="row" style="font-size:13px;display:flex;gap:10px;flex-wrap:wrap">' +
+              '<a class="btn btn-ghost" style="padding:9px 15px;font-size:13px;border-radius:12px" href="/verify?tx=' + esc(receipt.txHash) + '">Verify settlement &rarr;</a>' +
+              '<a class="btn btn-ghost" style="padding:9px 15px;font-size:13px;border-radius:12px" href="https://regtest.tachibtcscan.com/tx/' + esc(receipt.txHash) + '" target="_blank" rel="noopener noreferrer">View on Tachi Explorer &nearr;</a>' +
+              '</div>';
     }
     html += '<details><summary style="cursor:pointer;font-size:13px;font-weight:700;color:var(--muted)">Full protocol response</summary>'
          +  '<pre>' + esc(JSON.stringify(data, null, 2)) + '</pre></details>';

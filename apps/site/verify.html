@@ -129,6 +129,12 @@ note: Record is daemon-returned and re-fetchable: anyone can repeat this lookup.
       rows.push(['tx', '<code>' + esc(rec.txHash ?? txid) + '</code>']);
       if (rec.found) {
         rows.push(['epoch', esc(rec.epoch ?? 'n/a')]);
+        rows.push([
+          'tachi explorer',
+          '<a href="https://regtest.tachibtcscan.com/tx/' +
+            esc(rec.txHash ?? txid) +
+            '" target="_blank" rel="noopener noreferrer" style="color:var(--brand);font-weight:700">View on Tachi Explorer &nearr;</a>'
+        ]);
         for (const o of rec.outputs ?? []) {
           rows.push(['output', '<code>' + esc(o.owner) + '</code> &middot; ' + esc(o.amountSats) + ' sats']);
         }

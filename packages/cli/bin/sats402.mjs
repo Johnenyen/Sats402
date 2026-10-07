@@ -41,6 +41,7 @@ if (!check.found) {
 }
 
 console.log(`settlement   ${check.txHash}`);
+console.log(`explorer     https://regtest.tachibtcscan.com/tx/${check.txHash}`);
 console.log(`state        ${check.state}   (daemon-returned)`);
 console.log(`epoch        ${check.epoch ?? 'n/a'}`);
 console.log('outputs');
