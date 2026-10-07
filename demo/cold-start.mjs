@@ -19,7 +19,7 @@ try {
 } catch {}
 
 const DAEMON = process.env.SATS402_DAEMON ?? 'https://rpc-regtest.tachibtc.com';
-const MODEL = process.env.SATS402_MODEL ?? 'deepseek-ai/deepseek-v4.1-flash';
+const MODEL = process.env.SATS402_MODEL ?? 'openai/gpt-oss-20b';
 const API_KEY =
   process.env.NVIDIA_API_KEY ??
   process.env.SATS402_AI_API_KEY ??

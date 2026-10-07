@@ -150,6 +150,7 @@ export function startS2({ identity, s1Url, s1PayeeXOnly, priceSats = 50n, model,
           answer =
             message.content ||
             message.reasoning_content ||
+            message.reasoning ||
             `completion unavailable (${completion.status})`;
         } catch (err) {
           answer = `[Local fallback] Grounded in paid fact: recommended fee is ${fact?.fee_estimate_sat ?? 1} sat/vB at epoch ${fact?.epoch ?? 'unknown'}.`;

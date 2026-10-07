@@ -18,7 +18,7 @@ const INFERENCE_URL =
   process.env.SATS402_NVIDIA_URL ??
   process.env.SATS402_XKIRO_URL ??
   'https://integrate.api.nvidia.com/v1/chat/completions';
-const MODEL = process.env.SATS402_MODEL ?? 'deepseek-ai/deepseek-v4.1-flash';
+const MODEL = process.env.SATS402_MODEL ?? 'openai/gpt-oss-20b';
 // Cloudflare rejects non-browser clients on this API (error 1010).
 const BROWSER_UA =
   'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36';
@@ -166,7 +166,7 @@ const handle = paywall({
         });
         const parsed = await completion.json().catch(() => ({}));
         const message = parsed?.choices?.[0]?.message ?? {};
-        const content = message.content || message.reasoning_content || null;
+        const content = message.content || message.reasoning_content || message.reasoning || null;
         if (content) {
           answer = content;
           llmOk = true;

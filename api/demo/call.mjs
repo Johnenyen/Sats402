@@ -86,6 +86,10 @@ export default async function handler(req, res) {
     fees: { url: `${self}/api/services/fees`, price: '5', post: false },
     network: { url: `${self}/api/services/network`, price: '5', post: false },
     inference: { url: `${self}/api/services/inference`, price: '50', post: true },
+    'btc-price': { url: `${self}/api/services/price`, price: '5', post: false },
+    'btc-fees': { url: `${self}/api/services/fees`, price: '5', post: false },
+    'tachi-network': { url: `${self}/api/services/network`, price: '5', post: false },
+    'grounded-inference': { url: `${self}/api/services/inference`, price: '50', post: true },
   };
   const target = TARGETS[body.target] ? body.target : 'data';
   const selected = TARGETS[target];
