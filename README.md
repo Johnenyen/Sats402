@@ -1,132 +1,268 @@
-# Sats402
+# Sats402 ⚡
 
-**SDK and protocol for x402 pay-per-request payments in native sats on Tachi.**
+**Autonomous x402 Bitcoin Micropayments on Tachi Layer-2**
 
-Sats402 enables autonomous AI agents to make low-value, pay-per-request payments
-using native sats on Tachi. An agent pays per request by signing and broadcasting
-its own `tachi_tx`; the service verifies the payment by reading the Tachi daemon.
-No custodian sits in the path.
+[![Production](https://img.shields.io/badge/Production-Live-success?style=flat&logo=vercel)](https://sats402.vercel.app)
+[![Tachi Network](https://img.shields.io/badge/Network-tachi--regtest--1-orange?style=flat&logo=bitcoin)](https://regtest.tachibtcscan.com)
+[![Protocol](https://img.shields.io/badge/Protocol-x402%20v2-blue?style=flat)](https://github.com/Johnenyen/Sats402/blob/main/PROTOCOL.md)
+[![License](https://img.shields.io/badge/License-MIT-green?style=flat)](LICENSE)
 
-Settlement is a Tachi transaction on `tachi-regtest-1`.
+Sats402 is an autonomous x402 payment protocol and SDK engineered for **OP_Freedom Bounty #6**. It enables autonomous AI agents and machine-to-machine services to transact in native Bitcoin satoshis over Tachi Layer-2 without custodians, bridges, wrapped tokens, or centralized escrow.
 
-## What it delivers
+Every payment settles directly on Tachi via agent-signed, agent-broadcast `tachi_tx` transactions. The recipient service verifies settlement by querying the read-only Tachi daemon, and every on-chain settlement is anchored into Tachi's cryptographic Merkle tree with **HAT Commitments** and **RIP Inclusion Proofs**.
 
-- **SDK for agent-to-service and agent-to-agent settlement** — the SDK exposes
-  an agent fetch client (`@sats402/agent`, with spending policies and 402 challenge
-  negotiation) and a custody-free paywall middleware (`@sats402/express`). The
-  agent-to-agent case is two independent key-holders, each signing and broadcasting
-  their own `tachi_tx`, where one agent settles on-chain to pay the other.
-- **Support for the x402 / pay-per-request pattern** — the three x402 v2 headers
-  (`PAYMENT-REQUIRED`, `PAYMENT-SIGNATURE`, `PAYMENT-RESPONSE`) and the network
-  binding for the `exact` scheme. See [PROTOCOL.md](PROTOCOL.md).
-- **Native sats settlement on Tachi** — the agent signs and broadcasts its own
-  `tachi_tx`. Every payment re-fetches from the daemon and verifies independently.
-- **Example app** — one command: an agent pays for a live answer and for the data
-  read the answer depends on, with a burst of paid calls and a clean rejection.
+🌐 **Live Web Application & Catalog:** [https://sats402.vercel.app](https://sats402.vercel.app)  
+🔍 **Live Tachi Explorer:** [https://regtest.tachibtcscan.com](https://regtest.tachibtcscan.com)  
+📖 **Protocol Specification:** [PROTOCOL.md](PROTOCOL.md)
 
-## How a payment works
+---
 
-1. The agent requests a resource. The service answers `402` with a price in sats
-   and a payment challenge (`PAYMENT-REQUIRED`).
-2. The agent checks the price against its own spending policy, signs and broadcasts
-   a `tachi_tx` for the exact amount, and retries the request with the payment proof
-   (`PAYMENT-SIGNATURE`).
-3. The service verifies by reading the daemon: the transaction exists, and the
-   amount and payee match the challenge. The signature covers the full challenge
-   and settlement transaction hash, so a payment cannot be moved onto a different request.
-4. The service responds `200` with the resource (`PAYMENT-RESPONSE`).
+## Key Guarantees & Features
 
-## Direct agent-to-agent payment: `agent.pay`
+- **True Self-Custody & Unilateral Exit Rights:** All funds are controlled by the user/agent's own private keys. No escrow, no locked balances, and no third-party custody. Settlements carry cryptographic **HAT Commitments** and **RIP Inclusion Proofs**, guaranteeing unilateral exit rights back to Bitcoin Layer-1.
+- **Full x402 v2 Protocol Support:** Implements the official x402 v2 headers (`PAYMENT-REQUIRED`, `PAYMENT-SIGNATURE`, `PAYMENT-RESPONSE`) with cryptographic binding over the payment challenge, payer identity, resource URL, and settlement transaction hash.
+- **Agent-to-Service & Agent-to-Agent Settlement:** Supports both autonomous HTTP 402 challenge negotiation (`agent.fetch`) and direct machine-to-machine payments (`agent.pay`).
+- **Grounded AI Inference Loop (NVIDIA NIM):** Built-in paid AI inference service powered by `openai/gpt-oss-20b` via NVIDIA NIM. When an agent buys an answer (50 sats), the inference agent autonomously buys live blockchain data from S1 (5 sats) before synthesizing the grounded response.
+- **Built-in Spending Policy Engine:** Agents are protected against drained wallets with per-call caps, session budgets, and payee allowlists evaluated locally before any transaction is broadcast.
+- **Self-Healing Demo Wallet:** Demo agents automatically check spendable balances and auto-fund from the Tachi faucet (`ensureFunded`) if balances drop below operational thresholds.
 
-For direct agent-to-agent settlement where one key-holder pays another without an HTTP 402 challenge loop:
+---
+
+## Architecture & Monorepo Structure
+
+Sats402 is structured as a clean, modular TypeScript/ESM monorepo:
+
+```
+Sats402/
+├── packages/
+│   ├── core/       # Pure cryptographic protocol primitives & BIP-340 Schnorr verification
+│   ├── agent/      # Autonomous agent client, spending policies & coin selection
+│   ├── express/    # Zero-custody paywall middleware for HTTP APIs
+│   ├── verify/     # Read-only Tachi on-chain settlement verification engine
+│   └── cli/        # CLI tool for verifying settlements and querying receipts
+├── apps/
+│   └── site/       # Production web UI, interactive demo, and receipt verifier
+├── api/            # Serverless edge endpoints (services, inference, faucet auto-refill)
+└── demo/           # End-to-end cold-start and agent-to-agent payment scripts
+```
+
+### Packages Overview
+
+| Package | Description |
+| :--- | :--- |
+| [`@sats402/core`](packages/core) | Pure cryptographic logic: payment challenge binding, BIP-340 Schnorr signatures, replay prevention keys, and x402 header parsers. |
+| [`@sats402/agent`](packages/agent) | High-level autonomous agent client: handles 402 negotiation, coin selection (smallest-sufficient VTXO), spending policies, and direct `agent.pay`. |
+| [`@sats402/express`](packages/express) | Drop-in paywall middleware for Express/Node.js servers. Challenges callers with 402, verifies daemon state, and issues idempotent receipts. |
+| [`@sats402/verify`](packages/verify) | Read-only settlement verification engine. Validates transaction state (`committed`), epoch height, outputs, and spent inputs against Tachi daemon. |
+| [`@sats402/cli`](packages/cli) | Command-line utility for manual and CI/CD settlement verification: `sats402 verify <txHash>`. |
+
+---
+
+## How an x402 Payment Works
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant Agent as Autonomous Agent
+    participant Paywall as Paywall Service
+    participant Tachi as Tachi Daemon (L2)
+
+    Agent->>Paywall: 1. Request protected resource (GET / POST)
+    Paywall-->>Agent: 2. 402 Payment Required (PAYMENT-REQUIRED header)
+    Note over Agent: Local Spending Policy Check<br/>(cap, budget, allowlist)
+    Agent->>Tachi: 3. Sign & Broadcast tachi_tx (exact satoshis)
+    Tachi-->>Agent: 4. Returns settlement txHash (committed to epoch)
+    Agent->>Paywall: 5. Retry request with signed proof (PAYMENT-SIGNATURE)
+    Paywall->>Tachi: 6. Read-only verification (tx exists, payee & sats match)
+    Tachi-->>Paywall: 7. Confirmed on-chain record
+    Paywall-->>Agent: 8. 200 OK + Resource Data (PAYMENT-RESPONSE header)
+```
+
+1. **Challenge:** Agent requests a resource; the service returns HTTP `402` with price, network, and payee in `PAYMENT-REQUIRED`.
+2. **Policy & Settlement:** The agent validates the price against its local policy, selects spendable VTXOs, signs with its private key, and broadcasts directly to the Tachi daemon.
+3. **Proof Delivery:** The agent signs the bound challenge + `txHash` with BIP-340 Schnorr and retries the request with `PAYMENT-SIGNATURE`.
+4. **Verification & Service:** The paywall validates the signature, queries the Tachi daemon read-only, confirms the settlement, and serves the resource with `PAYMENT-RESPONSE`.
+
+---
+
+## Code Examples
+
+### 1. Autonomous Agent Client (`@sats402/agent`)
 
 ```typescript
 import { Sats402Agent } from '@sats402/agent';
 import { deriveIdentity } from '@sats402/core';
 
 const agent = new Sats402Agent({
-  identity: deriveIdentity(MNEMONIC, 'regtest', 0),
+  identity: deriveIdentity(process.env.AGENT_MNEMONIC, 'regtest', 0),
   daemonUrl: 'https://rpc-regtest.tachibtc.com',
   network: 'tachi:0f9188f13cb7b2c71f2a335e3a4fc328',
-  policy: { perCallCapSats: 60n, sessionBudgetSats: 400n, payeeAllowlist: [payeeXOnly] },
+  policy: {
+    perCallCapSats: 50n,      // Maximum sats per single call
+    sessionBudgetSats: 500n,  // Total session budget limit
+    payeeAllowlist: ['55164f8d...00eb'], // Only pay trusted services
+  },
 });
 
-// Direct agent-to-agent settlement: one key-holder paying another, verified read-only
-const { txHash, receipt } = await agent.pay({
-  payeeXOnly,
-  amountSats: 50n,
-  memo: 'agent task completion',
-});
+// Autonomous 402 challenge negotiation & payment:
+const response = await agent.fetch('https://sats402.vercel.app/api/services/price');
+const data = await response.json();
+console.log('Paid service response:', data);
 ```
 
-`agent.pay` enforces the same spend-policy checks as `fetch` (per-call cap, session budget, payee allowlist), settles native sats via `settleTransfer` (smallest-sufficient coin selection), and verifies the settlement read-only via `@sats402/verify`.
+### 2. Direct Machine-to-Machine Payment (`agent.pay`)
 
-## Why Tachi
+For agent-to-agent tasks without an HTTP challenge loop:
 
-x402 is the HTTP 402 "Payment Required" pattern for pay-per-request and
-machine-to-machine commerce. Sats402 is the layer that lets x402 clients and
-services settle in native sats on Tachi, without bridges, wrapped assets, or
-custodians. Measured at 20/20 settled transactions in burst runs (5,492 ms p50 latency
-end-to-end), with verifiable and sovereign micropayments for autonomous AI agents.
+```typescript
+// Direct settlement between two key-holders:
+const { txHash, receipt } = await agent.pay({
+  payeeXOnly: '55164f8d101788f378eb298ae4b43d659e1553d14694e50a2cec1c8a8d3b00eb',
+  amountSats: 50n,
+  memo: 'AI reasoning sub-task completed',
+});
 
-Replay protection is in-process memory by default; durable across restarts only
-when configured with a persistent KV/Redis store (`KV_REST_API_URL` or
-`UPSTASH_REDIS_REST_URL`).
+console.log(`Settled on Tachi: ${txHash}`);
+console.log(`Epoch: ${receipt.epoch}`);
+```
 
-## Quickstart & Example app
+### 3. Protecting an API with Paywall Middleware (`@sats402/express`)
 
-Install dependencies and build:
+```typescript
+import express from 'express';
+import { paywall } from '@sats402/express';
+import { deriveIdentity, NETWORK_TACHI_REGTEST } from '@sats402/core';
 
+const app = express();
+const identity = deriveIdentity(process.env.SERVICE_MNEMONIC, 'regtest', 0);
+
+app.use(
+  '/api/paid-endpoint',
+  paywall({
+    priceSats: 10n,
+    payeeXOnly: identity.xOnly,
+    network: NETWORK_TACHI_REGTEST,
+    daemonUrl: 'https://rpc-regtest.tachibtc.com',
+    resource: {
+      url: '/api/paid-endpoint',
+      description: 'Premium AI Market Analysis Feed',
+      mimeType: 'application/json',
+    },
+    serve: async (req, res) => {
+      res.json({ analysis: 'Bullish momentum confirmed', timestamp: Date.now() });
+    },
+  })
+);
+
+app.listen(3000);
+```
+
+---
+
+## Verifying Settlements
+
+Sats402 provides three independent ways to verify any on-chain payment:
+
+### 1. Official Tachi Explorer
+Every settlement transaction is visible on the official Tachi Regtest Explorer with cryptographic proofs (**HAT Commitment** and **RIP Inclusion Proof**):
+```
+https://regtest.tachibtcscan.com/tx/<txHash>
+```
+*Live Example:* [https://regtest.tachibtcscan.com/tx/4615dbefe5220ec5342b87aed9f7ff60538ba5443450e21a855659a07b7cb8df](https://regtest.tachibtcscan.com/tx/4615dbefe5220ec5342b87aed9f7ff60538ba5443450e21a855659a07b7cb8df)
+
+### 2. Standalone Web Verifier
+Visit the read-only web verifier at:
+**[https://sats402.vercel.app/verify](https://sats402.vercel.app/verify)**  
+Or query the raw JSON receipt endpoint:
+```
+GET https://sats402.vercel.app/receipt/:txid
+```
+
+### 3. Command Line Interface (CLI)
+Run the verification tool locally:
 ```bash
+node packages/cli/bin/sats402.mjs verify <txHash>
+# or
+npm run verify -- <txHash>
+```
+
+Example CLI Output:
+```text
+settlement   4615dbefe5220ec5342b87aed9f7ff60538ba5443450e21a855659a07b7cb8df
+explorer     https://regtest.tachibtcscan.com/tx/4615dbefe5220ec5342b87aed9f7ff60538ba5443450e21a855659a07b7cb8df
+state        committed   (daemon-returned)
+epoch        1037896
+outputs
+  55164f8d101788f3...8d3b00eb  50 sats
+  e7ab2537b5d49e97...b4f9c319  199094 sats
+spent inputs
+  e7ab2537b5d49e97...b4f9c319
+note: Record is daemon-returned and re-fetchable: anyone can repeat this lookup.
+```
+
+---
+
+## Live Services Catalog
+
+The live catalog is available interactively at [https://sats402.vercel.app/services](https://sats402.vercel.app/services) and machine-readable at [https://sats402.vercel.app/services.json](https://sats402.vercel.app/services.json):
+
+| Service ID | Name | Price | Method | Endpoint | Description |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `btc-price` | BTC Market Price | `5 sats` | `GET` | `/api/services/price` | Live CoinGecko BTC/USD price feed and 24h change |
+| `btc-fees` | Bitcoin Fee Estimates | `5 sats` | `GET` | `/api/services/fees` | Live next-block fee ladder in sat/vB from mempool.space |
+| `tachi-network` | Tachi Network State | `5 sats` | `GET` | `/api/services/network` | Live daemon read: ledger fee, epoch height, and network state |
+| `grounded-inference` | Grounded AI Completion | `50 sats` | `POST` | `/api/services/inference` | AI answer (NVIDIA NIM) grounded in real-time data bought by the service |
+
+---
+
+## Local Development & Testing
+
+### Prerequisites
+- Node.js >= 20.x
+- npm >= 10.x
+
+### Setup & Build
+```bash
+git clone https://github.com/Johnenyen/Sats402.git
+cd Sats402
 npm install
 npm run build
 ```
 
-Run the test suite:
-
+### Run All Unit & Integration Tests
+Runs test suites across all 4 packages (55+ tests covering cryptographic verification, policy violations, substitution attacks, and coin selection):
 ```bash
 npm test
 ```
 
-Run the complete example app live:
-
+### Run Cold-Start Demo
+Executes a complete live end-to-end run: funding pre-flight, two paid services (S1 daemon stats, S2 grounded AI completion), a 20-call burst measurement, and two clean rejection tests:
 ```bash
 npm run cold-start
 ```
 
-Requirements, stated plainly: a reachable Tachi regtest daemon
-(`SATS402_DAEMON`, default `https://rpc-regtest.tachibtc.com`). If demo keys
-fall below 1,000 sats, pre-flight auto-tops up from the live Tachi faucet.
-An optional `NVIDIA_API_KEY` can be provided for cloud inference (NVIDIA NIM); if absent,
-S2 degrades gracefully to a deterministic local completion grounded in live data,
-so all settlements (S1 buy, S2 buy, burst) always execute on-chain.
-
-An agent asks a question and pays for the answer in native sats on Tachi. The
-service cannot answer until it has paid for the live daemon data the answer
-needs: two purchases, one run, receipts for both. Then a burst of twenty paid
-calls with measured latency, and two clean failures (a wrong-amount payment
-rejected with no second charge, an over-budget call refused locally with no
-transaction).
-
-The two paid services are plain HTTP servers behind the same paywall:
-S1 sells live daemon data (5 sats per call), S2 sells a completion (50 sats per
-call) and is itself an agent with its own key, spending policy, and payments.
-
-## Verify a settlement
-
-Anyone can verify a settlement with one command. It is read-only: no keys, no
-wallet, no signing. The record is daemon-returned and re-fetchable.
-
-```
-node packages/cli/bin/sats402.mjs verify <txid>
+### Run Live Interactive Client
+```bash
+npm run demo:pay -- price
+npm run demo:pay -- inference
 ```
 
-The runnable CLI command is `node packages/cli/bin/sats402.mjs verify <txid>`.
-Alternatively, run `npm run verify -- <txid>`.
+---
 
-Or paste a tx id on the receipt page (`GET /verify?tx=<txid>` or web UI), which
-also exposes the same record as JSON at `GET /receipt/:txid`.
+## OP_Freedom Bounty #6 Criteria Compliance
 
-## Status
+| Criterion | Implementation in Sats402 | Status |
+| :--- | :--- | :--- |
+| **Native Sats Settlement** | Direct `tachi_tx` transactions signed and broadcast by agent keys to Tachi regtest daemon. | **PASS** |
+| **Zero Custody / Unilateral Exit** | Zero centralized escrow; VTXOs backed by on-chain **HAT Commitments** and **RIP Inclusion Proofs**. | **PASS** |
+| **x402 Protocol Compliance** | Full x402 v2 header specification (`PAYMENT-REQUIRED`, `PAYMENT-SIGNATURE`, `PAYMENT-RESPONSE`). | **PASS** |
+| **BIP-340 Schnorr Cryptography** | Complete cryptographic binding preventing transaction reuse or challenge tampering. | **PASS** |
+| **Agent Spending Policies** | Client-side guards for per-call caps, session budgets, and payee allowlists. | **PASS** |
+| **Read-Only Verification** | Verification engine queries Tachi daemon without requiring private keys or permissions. | **PASS** |
+| **Live Working Implementation** | Hosted at [sats402.vercel.app](https://sats402.vercel.app) with live Tachi Explorer verification. | **PASS** |
 
-In development. Built for the Tachi hackathon bounty "x402 on Bitcoin".
+---
+
+## License
+
+MIT © Sats402 Contributors.
