@@ -11,8 +11,11 @@ import { NETWORK_TACHI_REGTEST } from '@sats402/core';
 import { Sats402Agent } from '@sats402/agent';
 
 const DAEMON = process.env.SATS402_DAEMON ?? 'https://rpc-regtest.tachibtc.com';
-const XKIRO_URL =
-  process.env.SATS402_XKIRO_URL ?? 'https://api.xkiro.com/v1/chat/completions';
+const INFERENCE_URL =
+  process.env.SATS402_INFERENCE_URL ??
+  process.env.SATS402_NVIDIA_URL ??
+  process.env.SATS402_XKIRO_URL ??
+  'https://integrate.api.nvidia.com/v1/chat/completions';
 // Cloudflare rejects non-browser clients on this API (error 1010).
 const BROWSER_UA =
   'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36';
@@ -69,7 +72,7 @@ export function startS1({ identity, priceSats = 5n }) {
 export function startS2({ identity, s1Url, s1PayeeXOnly, priceSats = 50n, model, apiKey }) {
   if (!apiKey) {
     console.log(
-      '[services] Note: XKIRO_API_KEY is not set; falling back to deterministic local completion (payment flows still execute real settlements)'
+      '[services] Note: NVIDIA_API_KEY is not set; falling back to deterministic local completion (payment flows still execute real settlements)'
     );
   }
 
@@ -113,10 +116,10 @@ export function startS2({ identity, s1Url, s1PayeeXOnly, priceSats = 50n, model,
 
       let answer;
       if (!apiKey) {
-        answer = `[Deterministic local completion: XKIRO_API_KEY not set] Grounded live fact at epoch ${fact?.epoch ?? 'unknown'}: recommended fee is ${fact?.fee_estimate_sat ?? 1} sat/vB (min/avg/rec: ${fact?.min_fee_sat ?? 1}/${fact?.avg_fee_sat ?? 1}/${fact?.recommended_fee_sat ?? 1} sats). S2 bought this fact from S1 for 5 sats before answering.`;
+        answer = `[Deterministic local completion: NVIDIA_API_KEY not set] Grounded live fact at epoch ${fact?.epoch ?? 'unknown'}: recommended fee is ${fact?.fee_estimate_sat ?? 1} sat/vB (min/avg/rec: ${fact?.min_fee_sat ?? 1}/${fact?.avg_fee_sat ?? 1}/${fact?.recommended_fee_sat ?? 1} sats). S2 bought this fact from S1 for 5 sats before answering.`;
       } else {
         try {
-          const completion = await fetch(XKIRO_URL, {
+          const completion = await fetch(INFERENCE_URL, {
             method: 'POST',
             signal: AbortSignal.timeout(8000),
             headers: {

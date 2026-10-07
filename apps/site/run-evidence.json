@@ -2,7 +2,7 @@
   "run_at": "2026-10-03T15:08:06.469Z",
   "network": "tachi-regtest-1",
   "daemon": "https://rpc-regtest.tachibtc.com",
-  "model": "mistralai/ministral-14b",
+  "model": "deepseek-ai/deepseek-v4.1-flash",
   "prompt": "What is the recommended fee on this Tachi network right now, and is 50 sats enough for ten calls?",
   "answer": "Current **recommended fee** is **1 sat/vB** (per the live daemon data). For **10 calls**, ensure total size ≤ **100 vB** (assuming ~10 vB/call). **50 sats total (5 sats/call)** is **below recommended**—use **10 sats total (1 sat/call)** to align with the network’s **min/avg/recommended fee**. Monitor `fee_estimate_sat` for updates.",
   "receipts": [

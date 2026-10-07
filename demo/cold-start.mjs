@@ -14,9 +14,17 @@ import { Sats402Agent, settleTransfer, getSpendableSats, ensureFunded, PolicyErr
 import { verifyReceipt } from '@sats402/verify';
 import { startS1, startS2 } from './services.mjs';
 
+try {
+  process.loadEnvFile('.env');
+} catch {}
+
 const DAEMON = process.env.SATS402_DAEMON ?? 'https://rpc-regtest.tachibtc.com';
-const MODEL = process.env.SATS402_MODEL ?? 'mistralai/ministral-14b';
-const XKIRO_KEY = process.env.XKIRO_API_KEY ?? '';
+const MODEL = process.env.SATS402_MODEL ?? 'deepseek-ai/deepseek-v4.1-flash';
+const API_KEY =
+  process.env.NVIDIA_API_KEY ??
+  process.env.SATS402_AI_API_KEY ??
+  process.env.XKIRO_API_KEY ??
+  '';
 const PROMPT =
   'What is the recommended fee on this Tachi network right now, and is 50 sats enough for ten calls?';
 
@@ -68,7 +76,7 @@ async function main() {
     s1PayeeXOnly: s1.xOnly,
     priceSats: 50n,
     model: MODEL,
-    apiKey: XKIRO_KEY,
+    apiKey: API_KEY,
   });
   line(`[services] S1 daemon-stats: ${s1Svc.url} (5 sats per call)`);
   line(`[services] S2 completion:   ${s2Svc.url} (50 sats per call)`);

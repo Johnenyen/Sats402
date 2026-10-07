@@ -45,7 +45,7 @@
       "method": "POST",
       "priceSats": 50,
       "product": "A model answer grounded in live data the service buys itself first",
-      "upstream": "XKIRO inference"
+      "upstream": "NVIDIA NIM inference"
     }
   ]
 }

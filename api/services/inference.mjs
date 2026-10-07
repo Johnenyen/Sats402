@@ -13,9 +13,12 @@ import { readJson } from '../_lib/readjson.mjs';
 import { withCors, getPublicBaseUrl, createReplayStore } from '../_lib/services.mjs';
 
 const DAEMON = process.env.SATS402_DAEMON ?? 'https://rpc-regtest.tachibtc.com';
-const XKIRO_URL =
-  process.env.SATS402_XKIRO_URL ?? 'https://api.xkiro.com/v1/chat/completions';
-const MODEL = process.env.SATS402_MODEL ?? 'mistralai/ministral-14b';
+const INFERENCE_URL =
+  process.env.SATS402_INFERENCE_URL ??
+  process.env.SATS402_NVIDIA_URL ??
+  process.env.SATS402_XKIRO_URL ??
+  'https://integrate.api.nvidia.com/v1/chat/completions';
+const MODEL = process.env.SATS402_MODEL ?? 'deepseek-ai/deepseek-v4.1-flash';
 // Cloudflare rejects non-browser clients on this API (error 1010).
 const BROWSER_UA =
   'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36';
@@ -126,14 +129,18 @@ const handle = paywall({
       return;
     }
 
-    const apiKey = process.env.XKIRO_API_KEY ?? '';
+    const apiKey =
+      process.env.NVIDIA_API_KEY ??
+      process.env.SATS402_AI_API_KEY ??
+      process.env.XKIRO_API_KEY ??
+      '';
     let answer;
     let llmOk = false;
     if (!apiKey) {
-      answer = 'Inference unavailable: XKIRO_API_KEY is not set on the server.';
+      answer = 'Inference unavailable: NVIDIA_API_KEY is not set on the server.';
     } else {
       try {
-        const completion = await fetch(XKIRO_URL, {
+        const completion = await fetch(INFERENCE_URL, {
           method: 'POST',
           headers: {
             Authorization: `Bearer ${apiKey}`,

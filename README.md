@@ -97,7 +97,7 @@ npm run cold-start
 Requirements, stated plainly: a reachable Tachi regtest daemon
 (`SATS402_DAEMON`, default `https://rpc-regtest.tachibtc.com`). If demo keys
 fall below 1,000 sats, pre-flight auto-tops up from the live Tachi faucet.
-An optional `XKIRO_API_KEY` can be provided for cloud inference; if absent,
+An optional `NVIDIA_API_KEY` can be provided for cloud inference (NVIDIA NIM); if absent,
 S2 degrades gracefully to a deterministic local completion grounded in live data,
 so all settlements (S1 buy, S2 buy, burst) always execute on-chain.
 

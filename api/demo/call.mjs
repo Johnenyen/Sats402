@@ -8,7 +8,7 @@
 //
 // Guarded: per-IP rate limit (the wallet is real and finite) and a fixed
 // outbound origin (no Host-header SSRF).
-import { Sats402Agent, getSpendableSats, PolicyError } from '@sats402/agent';
+import { Sats402Agent, getSpendableSats, ensureFunded, PolicyError } from '@sats402/agent';
 import { deriveIdentity, NETWORK_TACHI_REGTEST } from '@sats402/core';
 import { readJson } from '../_lib/readjson.mjs';
 import { getPublicBaseUrl } from '../_lib/services.mjs';
@@ -108,6 +108,13 @@ export default async function handler(req, res) {
     balance = null; // daemon read failed: don't block, let the flow report it
   }
   if (balance !== null && balance < minSats) {
+    try {
+      balance = await ensureFunded(identity, DAEMON, 1000n, minSats);
+    } catch {
+      // faucet auto-refill failed, continue to 503 check below
+    }
+  }
+  if (balance !== null && balance < minSats) {
     res.statusCode = 503;
     res.setHeader('retry-after', '3600');
     res.end(
@@ -124,12 +131,15 @@ export default async function handler(req, res) {
   }
 
   // Guard 2: inference needs the service's own agent to buy data first. If the
-  // INFERENCE service wallet is drained, the 50-sat payment would settle and
-  // then the answer would come back "inference unavailable" — a bad deal for
-  // the visitor. Fail before charging them.
+  // INFERENCE service wallet is drained, auto-top up before charging visitor.
   if (target === 'inference') {
     try {
-      const inferenceBalance = await getSpendableSats(inferenceService, DAEMON);
+      let inferenceBalance = await getSpendableSats(inferenceService, DAEMON);
+      if (inferenceBalance < 6n) {
+        try {
+          inferenceBalance = await ensureFunded(inferenceService, DAEMON, 1000n, 10n);
+        } catch {}
+      }
       if (inferenceBalance < 6n) {
         res.statusCode = 503;
         res.setHeader('retry-after', '3600');

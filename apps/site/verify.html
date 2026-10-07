@@ -49,7 +49,7 @@
       <button class="btn btn-primary" id="go">Verify settlement</button>
     </div>
     <p class="section-sub" style="margin-top:12px; margin-bottom:0;">
-      No tx id handy? <a href="#" id="example-tx">Verify a settlement from the recorded run</a>.
+      No tx id handy? <a href="javascript:void(0)" id="example-tx">Verify a settlement from the recorded run</a>.
     </p>
     <div class="result" id="result" style="display:none; margin-top:22px;">
       <span class="badge" id="badge"></span>
@@ -159,7 +159,7 @@ note: Record is daemon-returned and re-fetchable: anyone can repeat this lookup.
   $('load-sample').addEventListener('click', () => {
     const sample = {
       x402Version: 2,
-      resource: { url: 'https://sats402-receipts.vercel.app/api/services/network' },
+      resource: { url: 'https://sats402.vercel.app/api/services/network' },
       accepted: {
         scheme: 'exact',
         network: 'tachi:0f9188f13cb7b2c71f2a335e3a4fc328',

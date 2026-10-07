@@ -6,6 +6,7 @@
   "workspaces": ["packages/*", "apps/*"],
   "scripts": {
     "build": "npm run build --workspaces --if-present",
+    "start": "node scripts/dev-server.mjs",
     "stage-site": "node scripts/stage-site.mjs",
     "prepare": "npm run build",
     "pretest": "npm run build",
