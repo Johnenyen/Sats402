@@ -15,6 +15,7 @@
     "cold-start": "node demo/cold-start.mjs",
     "demo:pay": "node demo/pay.mjs",
     "fund-wallet": "node packages/agent/scripts/fund-wallet.cjs",
+    "gate:signet": "node scripts/signet-gate.mjs",
     "verify": "node packages/cli/bin/sats402.mjs verify"
   }
 }
