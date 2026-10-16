@@ -24,7 +24,7 @@ Every payment settles directly on Tachi via agent-signed, agent-broadcast `tachi
 - **Agent-to-Service & Agent-to-Agent Settlement:** Supports both autonomous HTTP 402 challenge negotiation (`agent.fetch`) and direct machine-to-machine payments (`agent.pay`).
 - **Grounded AI Inference Loop (NVIDIA NIM):** Built-in paid AI inference service powered by `openai/gpt-oss-20b` via NVIDIA NIM. When an agent buys an answer (50 sats), the inference agent autonomously buys live blockchain data from S1 (5 sats) before synthesizing the grounded response. *Honest note on the recorded run:* its completion came back `401` (the hosted inference provider was not configured), which `run-evidence.json` records in its `answer` field — the run's receipts prove the settlement machinery, not answer quality.
 - **Built-in Spending Policy Engine:** Agents are protected against drained wallets with per-call caps, session budgets, and payee allowlists evaluated locally before any transaction is broadcast.
-- **Self-Healing Demo Wallet:** Demo agents automatically check spendable balances and auto-fund from the Tachi faucet (`ensureFunded`) if balances drop below operational thresholds.
+- **Self-Healing Demo Wallet:** Demo agents check spendable balances before running and stop early with exact funding instructions (amount, address, faucet link). Signet faucet claims happen in a signed-in browser session, so no programmatic top-up is attempted.
 
 ---
 

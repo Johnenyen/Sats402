@@ -82,7 +82,12 @@ test('coin selection: throws when total available funds are insufficient', () =>
   const vtxos = [{ id: 'v1', amountSats: 10n }];
   assert.throws(
     () => selectVtxos(vtxos, 20n),
-    /insufficient funds: have 10 sats, need 20/
+    (err) => {
+      assert.match(err.message, /insufficient funds: have 10 sats, need 20/);
+      assert.match(err.message, /faucet\.tachibtc\.com/);
+      assert.equal(err.code, 'INSUFFICIENT_FUNDS');
+      return true;
+    },
   );
 });
 

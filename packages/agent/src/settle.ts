@@ -79,14 +79,13 @@ export async function topUpFromFaucet(
   faucetUrl = 'https://faucet.tachibtc.com'
 ): Promise<FaucetResult> {
   try {
-    const res = await fetch(`${faucetUrl.replace(/\/$/, '')}/api/faucet`, {
+    const res = await fetch(`${faucetUrl.replace(/\/$/, '')}/api/signet/faucet`, {
       method: 'POST',
       signal: AbortSignal.timeout(10_000),
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         address: address.trim(),
         amountBtc,
-        proof: null,
       }),
     });
     if (!res.ok) {
@@ -112,24 +111,21 @@ export async function ensureFunded(
   thresholdSats = 1000n,
   minRequiredSats = 180n
 ): Promise<bigint> {
-  let balance = await getSpendableSats(identity, daemonUrl);
+  const balance = await getSpendableSats(identity, daemonUrl);
   if (balance < thresholdSats) {
     console.warn(
-      `[wallet warning] Demo wallet balance (${balance} sats) is below threshold (${thresholdSats} sats). Topping up from live Tachi faucet...`
+      `[wallet warning] Demo wallet balance (${balance} sats) is below threshold (${thresholdSats} sats). ` +
+        `Signet faucet claims happen in a signed-in browser session, so no programmatic top-up is attempted.`
     );
-    const topUp = await topUpFromFaucet(identity.userAddress);
-    if (topUp.ok) {
-      console.log(`[wallet] Faucet top-up broadcast: ${topUp.txid}`);
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-      balance = await getSpendableSats(identity, daemonUrl);
-    } else {
-      console.warn(`[wallet] Faucet top-up failed: ${topUp.error}`);
-    }
   }
 
   if (balance < minRequiredSats) {
-    throw new Error(
-      `Insufficient funds: demo wallet has ${balance} sats, need at least ${minRequiredSats} sats. Top up ${identity.userAddress} at https://faucet.tachibtc.com.`
+    throw Object.assign(
+      new Error(
+        `Insufficient funds: demo wallet has ${balance} sats, need at least ${minRequiredSats} sats. ` +
+          `Top up ${identity.userAddress} at https://faucet.tachibtc.com (open it in a browser, sign in, and claim for this address).`
+      ),
+      { code: 'INSUFFICIENT_FUNDS' },
     );
   }
   return balance;
@@ -232,7 +228,13 @@ export function selectVtxos<T extends VtxoCandidate>(
   }
 
   if (total < needSats) {
-    throw new Error(`insufficient funds: have ${total} sats, need ${needSats}`);
+    throw Object.assign(
+      new Error(
+        `insufficient funds: have ${total} sats, need ${needSats}. ` +
+          `Fund the payer address at https://faucet.tachibtc.com (open it in a browser, sign in, and claim) and retry.`,
+      ),
+      { code: 'INSUFFICIENT_FUNDS' },
+    );
   }
 
   return { picked, total };
