@@ -26,6 +26,22 @@ Every payment settles directly on Tachi via agent-signed, agent-broadcast `tachi
 - **Built-in Spending Policy Engine:** Agents are protected against drained wallets with per-call caps, session budgets, and payee allowlists evaluated locally before any transaction is broadcast.
 - **Self-Healing Demo Wallet:** Demo agents check spendable balances before running and stop early with exact funding instructions (amount, address, faucet link). Signet faucet claims happen in a signed-in browser session, so no programmatic top-up is attempted.
 
+### Funding a wallet
+
+Faucet coins arrive on the wallet's L1 address; spendable ledger value lives in VTXOs.
+`npm run fund-wallet` does the two L1 steps in one command — it sweeps the faucet coins
+to the wallet's own SegWit address (one taproot signature) and deposits them into a fresh
+vault via the SDK flow, with the fee conservation asserted at every step:
+
+```bash
+SATS402_MNEMONIC="..." npm run fund-wallet            # deposit 90,000 sats
+SATS402_MNEMONIC="..." npm run fund-wallet -- --dry-run   # show what would happen
+```
+
+The mnemonic is read from the environment (or `--mnemonic-env <VAR>`), never from argv.
+After the deposit confirms on L1, register the vault to mint spendable VTXOs (the tool
+prints the exact funding outpoint and vault address as its next step).
+
 ---
 
 ## Architecture & Monorepo Structure
