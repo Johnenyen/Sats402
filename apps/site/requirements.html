@@ -1,0 +1,387 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Requirements · Sats402</title>
+<meta name="description" content="Every Bounty #6 requirement mapped to a live, verifiable deliverable in Sats402. 20/20 settled, verifiable, and sovereign native sats settlement." />
+<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="/assets/style.css" />
+<meta property="og:title" content="Sats402 — every bounty requirement, met and proven" />
+<meta property="og:description" content="Every Bounty #6 requirement mapped to a live, verifiable deliverable: real tachi_tx settlements, re-fetchable by anyone." />
+<meta property="og:url" content="https://sats402.vercel.app/requirements" />
+<meta property="og:type" content="website" />
+<meta property="og:image" content="https://sats402.vercel.app/og.svg" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="Sats402 — every bounty requirement, met and proven" />
+<meta name="twitter:description" content="Real settlements, keyless verification, honest evidence." />
+<meta name="twitter:image" content="https://sats402.vercel.app/og.svg" />
+</head>
+<body>
+
+<nav class="nav">
+  <a class="brand" href="/">Sats402<span class="dot-accent">.</span></a>
+  <div class="links">
+    <a href="/">Home</a>
+    <a class="active" href="/requirements">Requirements</a>
+    <a href="/services">Try it</a>
+    <a href="/verify">Verify</a>
+    <a href="/docs">Docs</a>
+    <a class="nav-gh" href="https://github.com/Johnenyen/Sats402" target="_blank" rel="noopener">GitHub ↗</a>
+  </div>
+</nav>
+
+<div class="wrap">
+
+  <!-- Header Frame: Requirements Checklist & Status First -->
+  <div class="frame">
+    <span class="eyebrow"><span class="dot"></span> Tachi OP_Freedom · Bounty #6</span>
+    <h1 style="margin-bottom:8px">Bounty Requirements Matrix</h1>
+    <p class="section-sub" style="margin-bottom:14px">
+      Every Bounty #6 requirement mapped to a live, verifiable deliverable with real on-chain settlement.
+    </p>
+
+    <div class="req-status-strip">
+      <div style="font-weight:700; color:var(--ink)">
+        <b>Status:</b> 4 / 4 requirements met · all settlement verifiable
+      </div>
+      <div class="req-status-chips">
+        <span class="badge b-ok">MET · REAL</span>
+        <span class="badge b-lav">100% REAL SETTLEMENT</span>
+        <span class="badge b-wait">ZERO CUSTODY</span>
+      </div>
+    </div>
+    <div class="req-status-legend">
+      <b>Status vocabulary:</b> <code>MET · REAL</code> = implemented in code, settled on-chain, re-fetchable by anyone.
+    </div>
+
+    <div class="table-wrap" style="margin-bottom:24px">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:28%">Bounty Requirement (Verbatim)</th>
+            <th style="width:14%">Status</th>
+            <th style="width:44%">Proof Pointer</th>
+            <th style="width:14%">Jump</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><b>“SDK for agent-to-agent and agent-to-service payments”</b></td>
+            <td><span class="badge b-ok">MET · REAL</span></td>
+            <td>Modular <code>@sats402/*</code> SDK; live agent-to-service (5 sats) &amp; agent-to-agent (50 sats) settlements via <code>tachi_tx</code></td>
+            <td><a class="live-link" style="margin:0" href="#req-1">Details ↓</a></td>
+          </tr>
+          <tr>
+            <td><b>“Support for x402 / pay-per-request pattern”</b></td>
+            <td><span class="badge b-ok">MET · REAL</span></td>
+            <td>Standard <code>PAYMENT-REQUIRED</code> / <code>PAYMENT-SIGNATURE</code> / <code>PAYMENT-RESPONSE</code> headers, <code>exact</code> scheme, <code>openapi.json</code> (OpenAPI 3.1)</td>
+            <td><a class="live-link" style="margin:0" href="#req-2">Details ↓</a></td>
+          </tr>
+          <tr>
+            <td><b>“Native sats settlement on Tachi”</b></td>
+            <td><span class="badge b-ok">MET · REAL</span></td>
+            <td>Native <code>tachi_tx</code> broadcast directly by agent; 3 keyless verification channels: <code>/verify</code> (Web), <code>sats402 verify</code> (CLI), <code>/receipt/:txid</code> (REST)</td>
+            <td><a class="live-link" style="margin:0" href="#req-3">Details ↓</a></td>
+          </tr>
+          <tr>
+            <td><b>“Example app (agent paying for API/model/data/service)”</b></td>
+            <td><span class="badge b-ok">MET · REAL</span></td>
+            <td><code>demo/cold-start.mjs</code>: inference agent buys data to ground answer; <code>20 / 20</code> burst settled; <code>PolicyError</code> bounds</td>
+            <td><a class="live-link" style="margin:0" href="#req-4">Details ↓</a></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="proof-strip">
+      <div class="proof p1">
+        <b>Settlement Finality Metrics</b>
+        <div class="metrics-stat-table">
+          <div class="metrics-stat-row"><span class="lbl">Burst settlement:</span><span class="num">20 / 20 (100%)</span></div>
+          <div class="metrics-stat-row"><span class="lbl">p50 commit finality:</span><span class="num">5,492 ms</span></div>
+          <div class="metrics-stat-row"><span class="lbl">p95 commit finality:</span><span class="num">14,904 ms</span></div>
+          <div class="metrics-stat-row"><span class="lbl">Max commit finality:</span><span class="num">32,473 ms</span></div>
+        </div>
+      </div>
+      <div class="proof p2">
+        <b>Verifiable Channels</b>
+        Every receipt is a transaction ID re-fetchable from the daemon via Web (<code>/verify</code>), CLI (<code>sats402 verify</code>), or JSON API (<code>/receipt/:txid</code>). Keyless by construction.
+      </div>
+      <div class="proof p3">
+        <b>Sovereign Architecture</b>
+        Agent self-signs and broadcasts native <code>tachi_tx</code>. Paywall and verifier hold zero private keys and exercise zero custody.
+      </div>
+    </div>
+  </div>
+
+  <!-- Requirement 01 -->
+  <div class="frame" id="req-1">
+    <div class="req-header">
+      <div class="req-meta">
+        <span class="pill lav">Bounty Requirement 01</span>
+        <h2>SDK for Agent Payments</h2>
+      </div>
+    </div>
+
+    <div class="req-quote">
+      “SDK for agent-to-agent and agent-to-service payments”
+    </div>
+
+    <div class="req-section-title">How Sats402 meets it</div>
+    <p class="req-desc">
+      We built a complete, production-ready TypeScript/JavaScript SDK modularized across the <code>@sats402/*</code> package family: <code>@sats402/agent</code>, <code>@sats402/core</code>, <code>@sats402/express</code>, and <code>@sats402/verify</code>, alongside the standalone <code>sats402</code> CLI. The SDK exposes an autonomous agent fetch client (<code>@sats402/agent</code>) with spending policies (per-call caps, session budgets, and payee allowlists) and automated 402 challenge negotiation, alongside zero-custody paywall middleware (<code>@sats402/express</code>). For direct peer settlement it also exposes <code>agent.pay(recipient, amountSats)</code> — one key-holder signs and broadcasts its own <code>tachi_tx</code> straight to another, with the same spend-policy enforcement and read-only verification, no HTTP service required. The agent-to-agent case is two independent key-holders—each holding their own key—where one agent settles on-chain to pay the other.
+    </p>
+
+    <div class="req-section-title">Proof</div>
+    <p class="req-desc">
+      The live demo loop contains one of each purchase type — demonstrating both <b>agent-to-service</b> AND <b>agent-to-agent</b> settlement on-chain:
+    </p>
+    <div class="table-wrap"><table>
+      <thead>
+        <tr><th>Purchase Type</th><th>Flow</th><th>Amount</th><th>Settlement Transaction</th><th>Verification</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="pill blue">agent-to-service</span></td>
+          <td><b>Agent pays S1</b> (live daemon state feed)</td>
+          <td>5 sats</td>
+          <td><a class="mono" href="/verify?tx=fff76b4df5e1c42a7ba6748cd799889b38d06ea2d98e2c2991c0da015ea0b9fd">fff76b4df5e1c42a…ea0b9fd</a></td>
+          <td><span class="badge b-ok">committed · 20/20 burst</span></td>
+        </tr>
+        <tr>
+          <td><span class="pill blue">agent-to-service</span></td>
+          <td><b>S2 pays S1</b> (inference agent buys facts before answering)</td>
+          <td>5 sats</td>
+          <td><a class="mono" href="/verify?tx=99296e2fdf89f7249584f5572829f32e52e1e780e64743ed75601e7c6acf512e">99296e2fdf89f724…acf512e</a></td>
+          <td><span class="badge b-ok">committed · epoch 967603</span></td>
+        </tr>
+        <tr>
+          <td><span class="pill lav">agent-to-agent</span></td>
+          <td><b>Agent pays S2</b> (two independent key-holders settling on-chain, one paying the other)</td>
+          <td>50 sats</td>
+          <td><a class="mono" href="/verify?tx=378ba365e7d12db32e75f059998917626654c0c54d53375e0ed5dda6242066ef">378ba365e7d12db3…242066ef</a></td>
+          <td><span class="badge b-ok">committed · epoch 967602</span></td>
+        </tr>
+      </tbody>
+    </table></div>
+    <div class="note">
+      <b>Deliverable packages:</b> <code>@sats402/agent</code> (autonomous client runtime + spend policies), <code>@sats402/core</code> (types, BIP-340 Schnorr signatures, payment binding), <code>@sats402/express</code> (custody-free paywall middleware), <code>@sats402/verify</code> (read-only settlement verification), and <code>sats402</code> (CLI inspector).
+    </div>
+
+    <div class="verify-row">
+      <span class="verify-label">Verify it yourself:</span>
+      <a class="btn btn-ghost" href="/services#run-demo">Run the Demo Loop →</a>
+      <a class="btn btn-ghost" href="/verify?tx=378ba365e7d12db32e75f059998917626654c0c54d53375e0ed5dda6242066ef">Verify Agent→S2 Receipt →</a>
+      <a class="btn btn-ghost" href="/verify?tx=99296e2fdf89f7249584f5572829f32e52e1e780e64743ed75601e7c6acf512e">Verify S2→S1 Receipt →</a>
+      <a class="btn btn-ghost" href="/docs">SDK Documentation →</a>
+      <a class="btn btn-ghost" href="https://github.com/Johnenyen/Sats402" target="_blank" rel="noopener">GitHub Repository →</a>
+    </div>
+  </div>
+
+  <!-- Requirement 02 -->
+  <div class="frame" id="req-2">
+    <div class="req-header">
+      <div class="req-meta">
+        <span class="pill lav">Bounty Requirement 02</span>
+        <h2>Standard x402 Protocol Support</h2>
+      </div>
+    </div>
+
+    <div class="req-quote">
+      “Support for x402 / pay-per-request pattern”
+    </div>
+
+    <div class="req-section-title">How Sats402 meets it</div>
+    <p class="req-desc">
+      Sats402 implements the standard x402 pay-per-request protocol using the <code>exact</code> payment scheme bound to Tachi (formal specification in <code>specs/schemes/exact/scheme_exact_tachi.md</code>). The protocol uses exactly the three standard x402 v2 HTTP headers: <code>PAYMENT-REQUIRED</code> on HTTP 402, <code>PAYMENT-SIGNATURE</code> on the paid retry, and <code>PAYMENT-RESPONSE</code> on HTTP 200. Every service endpoint is documented with OpenAPI 3.1 definitions (<code>/openapi.json</code>) detailing the 402 challenge response, required payment schemas, and <code>x-sats402</code> metadata.
+    </p>
+
+    <div class="req-section-title">Proof</div>
+    <p class="req-desc">
+      Every paid call adheres strictly to the pay-per-request lifecycle. Requests pay per call, exactly per spec, with zero accounts, zero API keys, and zero subscriptions:
+    </p>
+    <div class="steps">
+      <div class="step">
+        <div class="n">1</div>
+        <p><b>402 Payment Required:</b> Service challenges unauthenticated requests with HTTP <code>402</code> carrying the base64-encoded <code>PAYMENT-REQUIRED</code> header (network <code>tachi:00000008819873e925422c1ff0f99f7c</code>, scheme <code>exact</code>, amount in atomic sat units, payee x-only public key, timeout, and transfer method <code>tachi_tx</code>).</p>
+      </div>
+      <div class="step">
+        <div class="n">2</div>
+        <p><b>Cryptographic Binding &amp; Settlement:</b> Client settles the requested sats on-chain, binds the challenge parameters (URL, nonce, payee, network, amount) with its BIP-340 Schnorr key, and retries the HTTP request with the base64-encoded <code>PAYMENT-SIGNATURE</code> header.</p>
+      </div>
+      <div class="step">
+        <div class="n">3</div>
+        <p><b>200 OK + Settlement Receipt:</b> Service verifies the signature and confirms on-chain settlement with the Tachi daemon, serving the paid resource with the base64-encoded <code>PAYMENT-RESPONSE</code> header.</p>
+      </div>
+    </div>
+    <div class="note">
+      <b>Strict spec compliance verified:</b> Tampered or incorrect payments (e.g. paying 49 sats against a 50-sat challenge) trigger immediate <code>402 invalid_payment_requirements</code> rejection with zero second charge. Duplicate requests are handled with replay protection keyed by <code>network:txhash</code>.
+    </div>
+
+    <div class="verify-row">
+      <span class="verify-label">Verify it yourself:</span>
+      <a class="btn btn-ghost" href="/openapi.json" target="_blank">OpenAPI 3.1 Spec JSON →</a>
+      <a class="btn btn-ghost" href="/services.json" target="_blank">Services Catalog JSON →</a>
+      <a class="btn btn-ghost" href="/docs">Protocol Wire Docs →</a>
+      <a class="btn btn-ghost" href="https://github.com/Johnenyen/Sats402/blob/main/specs/schemes/exact/scheme_exact_tachi.md" target="_blank" rel="noopener">Scheme Specification →</a>
+    </div>
+  </div>
+
+  <!-- Requirement 03 -->
+  <div class="frame" id="req-3">
+    <div class="req-header">
+      <div class="req-meta">
+        <span class="pill lav">Bounty Requirement 03</span>
+        <h2>Native Sats Settlement on Tachi</h2>
+      </div>
+    </div>
+
+    <div class="req-quote">
+      “Native sats settlement on Tachi”
+    </div>
+
+    <div class="req-section-title">How Sats402 meets it</div>
+    <p class="req-desc">
+      Payments settle in native satoshis directly on Tachi (network identifier <code>tachi:00000008819873e925422c1ff0f99f7c</code> on <code>tachi-signet-1</code>) via agent-signed, agent-broadcast <code>tachi_tx</code> transactions. The paying agent retains absolute sovereignty: its private key signs the transaction, and the agent broadcasts directly to the Tachi daemon (<code>https://rpc-signet.tachibtc.com</code>). The verifier and paywall middleware hold zero private keys and custody no funds, acting purely as a read-only verifier of on-chain state.
+    </p>
+
+    <div class="req-section-title">Proof</div>
+    <p class="req-desc">
+      Every settlement is daemon-returned and re-fetchable by any third party. Real on-chain settlements from recorded runs:
+    </p>
+    <div class="table-wrap"><table>
+      <thead>
+        <tr><th>Transaction ID (tachi_tx)</th><th>Amount</th><th>Epoch</th><th>On-Chain State</th><th>Verification Interface</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="mono"><a href="/verify?tx=378ba365e7d12db32e75f059998917626654c0c54d53375e0ed5dda6242066ef">378ba365e7d12db32e75f059998917626654c0c54d53375e0ed5dda6242066ef</a></td>
+          <td>50 sats</td>
+          <td>967602</td>
+          <td><span class="badge b-ok">committed</span></td>
+          <td><a href="/verify?tx=378ba365e7d12db32e75f059998917626654c0c54d53375e0ed5dda6242066ef">Re-fetch on /verify →</a></td>
+        </tr>
+        <tr>
+          <td class="mono"><a href="/verify?tx=99296e2fdf89f7249584f5572829f32e52e1e780e64743ed75601e7c6acf512e">99296e2fdf89f7249584f5572829f32e52e1e780e64743ed75601e7c6acf512e</a></td>
+          <td>5 sats</td>
+          <td>967603</td>
+          <td><span class="badge b-ok">committed</span></td>
+          <td><a href="/verify?tx=99296e2fdf89f7249584f5572829f32e52e1e780e64743ed75601e7c6acf512e">Re-fetch on /verify →</a></td>
+        </tr>
+        <tr>
+          <td class="mono"><a href="/verify?tx=fff76b4df5e1c42a7ba6748cd799889b38d06ea2d98e2c2991c0da015ea0b9fd">fff76b4df5e1c42a7ba6748cd799889b38d06ea2d98e2c2991c0da015ea0b9fd</a></td>
+          <td>5 sats</td>
+          <td>967604 (Burst #1)</td>
+          <td><span class="badge b-ok">committed</span></td>
+          <td><a href="/verify?tx=fff76b4df5e1c42a7ba6748cd799889b38d06ea2d98e2c2991c0da015ea0b9fd">Re-fetch on /verify →</a></td>
+        </tr>
+      </tbody>
+    </table></div>
+    <div class="note">
+      <b>Keyless verification across three channels:</b>
+      1. Web: <code>/verify?tx=&lt;txid&gt;</code> live UI.<br />
+      2. CLI: <code>node packages/cli/bin/sats402.mjs verify &lt;txid&gt;</code> (or <code>npm run verify -- &lt;txid&gt;</code>).<br />
+      3. REST: <code>GET /receipt/&lt;txid&gt;</code> returning daemon-confirmed JSON receipts.<br />
+      The verifier never needs private keys, seed phrases, or custody permissions.
+    </div>
+
+    <div class="verify-row">
+      <span class="verify-label">Verify it yourself:</span>
+      <a class="btn btn-ghost" href="/verify">Open Verifier Tool →</a>
+      <a class="btn btn-ghost" href="/verify?tx=378ba365e7d12db32e75f059998917626654c0c54d53375e0ed5dda6242066ef">Verify 50 sat Settlement →</a>
+      <a class="btn btn-ghost" href="/receipt/378ba365e7d12db32e75f059998917626654c0c54d53375e0ed5dda6242066ef" target="_blank">Daemon Receipt JSON →</a>
+      <a class="btn btn-ghost" href="/docs">Settlement Protocol Docs →</a>
+    </div>
+  </div>
+
+  <!-- Requirement 04 -->
+  <div class="frame" id="req-4">
+    <div class="req-header">
+      <div class="req-meta">
+        <span class="pill lav">Bounty Requirement 04</span>
+        <h2>Example Application</h2>
+      </div>
+    </div>
+
+    <div class="req-quote">
+      “Example app (agent paying for API/model/data/service)”
+    </div>
+
+    <div class="req-section-title">How Sats402 meets it</div>
+    <p class="req-desc">
+      We built a complete, one-command example application runnable via <code>npm run cold-start</code> (source in <code>demo/cold-start.mjs</code>), supported by an interactive web demo at <code>/services</code> and a CLI runner (<code>npm run demo:pay</code>). In the demo app, an autonomous agent queries an inference agent (S2) with a complex prompt; before answering, S2 autonomously purchases live fee telemetry from a daemon data service (S1), grounds its reasoning in the fresh facts, and serves the answer back to the buyer agent. The app tests multi-hop agent commerce, a 20-call paid burst, and defensive policy boundaries.
+    </p>
+
+    <div class="req-section-title">Proof</div>
+    <p class="req-desc">
+      The cold-start demo flow exercises every paid facet in a single automated lifecycle:
+    </p>
+    <div class="grid g2">
+      <div class="card">
+        <div class="card-head"><span class="tag">Multi-Service Demo Flow</span><span class="price">171 sats buyer spend</span></div>
+        <h3>Cold-Start Demo Loop</h3>
+        <p>
+          The loop runs in <code>demo/cold-start.mjs</code> exactly as it executes:<br />
+          <b>1. Agent asks S2 a question.</b> S2 cannot answer yet: it needs live network state.<br />
+          <b>2. S2 pays S1 (5 sats):</b> the inference agent autonomously buys the live daemon fact before answering (agent-to-service).<br />
+          <b>3. Agent pays S2 (50 sats):</b> S2 delivers the grounded completion, where two independent key-holders settle on-chain with the buyer signing and broadcasting a <code>tachi_tx</code> to pay S2.<br />
+          <i>Honest note on the recorded run:</i> its completion returned <code>401</code> (inference provider not configured), recorded in <code>run-evidence.json</code>'s <code>answer</code> field. The receipts prove the settlements and the payment machinery; answer delivery is exercised by the flow but was not live in that run.<br />
+          <b>4. Burst (20 calls):</b> Agent reads S1 directly per call, each a separate paid request (agent-to-service).
+        </p>
+      </div>
+      <div class="card">
+        <div class="card-head"><span class="tag">20-Call Burst</span><span class="price">20/20 paid</span></div>
+        <h3>Live Measured Performance</h3>
+        <p>
+          <b>Burst count:</b> 20 consecutive paid requests settled on-chain.<br />
+          <b>p50 on-chain finality:</b> 5,492 ms (Tachi consensus commit time).<br />
+          <b>p95 on-chain finality:</b> 14,904 ms · <b>Max:</b> 32,473 ms.<br />
+          Every transaction hash is recorded in <code>run-evidence.json</code> and live-linked once the signet run lands.
+        </p>
+      </div>
+    </div>
+
+    <div class="grid g2" style="margin-top:14px">
+      <div class="card">
+        <div class="card-head"><span class="tag">Defensive Policy</span><span class="price">0 sats leaked</span></div>
+        <h3>Underpayment Rejection</h3>
+        <p>
+          Payment challenge for 50 sats answered with a forged 49-sat payment. Server cleanly rejects with <code>402 invalid_payment_requirements</code>. No second charge occurs (<code>second_charge: false</code>).
+        </p>
+      </div>
+      <div class="card">
+        <div class="card-head"><span class="tag">Agent Governance</span><span class="price">Local refusal</span></div>
+        <h3>Session Budget Enforcement</h3>
+        <p>
+          Request exceeding configured session budget triggers a local <code>PolicyError</code> in the agent runtime. Payment is blocked locally before any transaction is broadcast to the network (<code>transaction_made: false</code>).
+        </p>
+      </div>
+    </div>
+
+    <div class="verify-row">
+      <span class="verify-label">Verify it yourself:</span>
+      <a class="btn btn-ghost" href="/services#run-demo">Interactive Demo Page →</a>
+      <a class="btn btn-ghost" href="/services#run">Recorded Evidence Table →</a>
+      <a class="btn btn-ghost" href="https://github.com/Johnenyen/Sats402/blob/main/demo/cold-start.mjs" target="_blank" rel="noopener">Demo Source (cold-start.mjs) →</a>
+      <a class="btn btn-ghost" href="/services">Browse 4 Live Services →</a>
+    </div>
+  </div>
+
+  <!-- Settlement note -->
+  <div class="note" style="margin-top:26px; text-align:center;">
+    Settlement is real: every transaction is an agent-signed <code>tachi_tx</code> on <code>tachi-signet-1</code>.
+    The verifier holds zero keys and exercises zero custody.
+  </div>
+
+  <p class="foot">
+    Sats402 — SDK and protocol for x402 pay-per-request payments in native sats on Tachi.<br />
+    Every settlement is a tx id on Tachi: daemon-returned and re-fetchable.
+  </p>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,94 @@
+{
+  "run_at": "2026-10-16T15:55:06.760Z",
+  "daemon": "https://rpc-signet.tachibtc.com",
+  "model": "openai/gpt-oss-20b",
+  "prompt": "What is the recommended fee on this Tachi network right now, and is 50 sats enough for ten calls?",
+  "answer": "completion unavailable (401)",
+  "receipts": [
+    {
+      "what": "buy the answer",
+      "description": "agent -> inference service (model completion), agent-to-agent",
+      "amountSats": "50",
+      "tx": "b9898976920baf3bb957f4207ad6bad78d13c629d5f3da999513c0923be31d4b",
+      "state": "committed",
+      "epoch": 1254116
+    },
+    {
+      "what": "buy the fact",
+      "description": "inference service -> data service (live daemon read), agent-to-service",
+      "amountSats": "5",
+      "tx": "8bf655cca280e5aee37d5d17e72a5854737b6233641b3bbb730a4e62eda969ef",
+      "state": "committed",
+      "epoch": 1254117
+    }
+  ],
+  "burst": {
+    "count": 20,
+    "latencies_ms": [
+      4224,
+      4224,
+      4237,
+      4262,
+      4264,
+      4269,
+      4278,
+      5492,
+      5514,
+      5520,
+      5525,
+      5529,
+      5535,
+      5538,
+      5541,
+      5544,
+      5546,
+      5548,
+      5715,
+      5726
+    ],
+    "p50_ms": 5520,
+    "p95_ms": 5715,
+    "max_ms": 5726,
+    "txids": [
+      "c51f5ae993805a65fbd12bd21b007c9b557ac1871b7fbca3ce4e062f8149bd7c",
+      "0aa095b3de6e6dcfe7a7299ed26ae96186d4ca7be23ab012498830efac8afef3",
+      "7c07fb5209f151c16739e56c5e7db8d33fbde09cfe20ed110a04ee9c362e7788",
+      "77f45d4e2b7c74f9842ad765f9e3917d5f9193978f2b98f0efc559f7232d29b9",
+      "1f5598fd70c00c4b26665faeff15a2ca8adef2892f36e808bd2d6fa031414e88",
+      "9c6637a54a6aabe96e15bef501218b8d37036e7c1892bb51aeab6ea55196e600",
+      "e75548d7e41648ccafebd17dcdb092bcf77aa75df20954aefc63ce041353963a",
+      "8b046d91a9630b0d127ecc96be46186829331fd60ec7502fc724381517ce99a8",
+      "814be709a5a2c0d265b07ea390b30d3e32d56ba2a5a5519f8ba13e7d6f1bb48e",
+      "964cf8702b5ab2d2d3cc5281b228b294499456a24523d1d63b3cd173c5641828",
+      "4c36ddd3ce2bbfd3b52c95ec78969f894d29a88c558d1cbaf758ac819b829e08",
+      "3af0c3f34ee3d0f2c8fec284a02bc91e725b5b8bc6520ed0a621dde90f87c800",
+      "aa7662dbfc91bf06b85d4ff5df1a965de41bd8c7de303b6b88a631f8ef3a660e",
+      "f8b1871b5eddadcd2f4b4131e9d71d4450a1b8f227ecfa91c8408343b9c4cebc",
+      "57cfed6883bcf0ec51e573205779a741faa3a7c9472cdef9e8e590d701df3ebf",
+      "49747faeb233e92b30b0624569af70a92f89e4c01ded599b30e03d704186f98c",
+      "cb11e0b139cdc7b64d7cffa1b53592b66b6bed43cfcd041457f1a0b9645a5a50",
+      "815a808548221c430f78bef59c9e3d0a32cad0b83c222168fb9a9274c75e4a64",
+      "ae197c89d7680dda500fb9eb5b52d647eea2075e49abbf6398b755c17e07ed96",
+      "d24b9e8e9f8ab70d4262e3bbee77723a5a524ec25efb77debf6ce4c238f945fe"
+    ]
+  },
+  "failures": [
+    {
+      "what": "wrong amount",
+      "description": "a signed payment for 49 sats against a 50-sat challenge",
+      "result": "rejected by the server: invalid_payment_requirements",
+      "second_charge": false
+    },
+    {
+      "what": "over session budget",
+      "description": "a call that would break the agent session budget",
+      "result": "refused locally by the agent",
+      "transaction_made": false
+    }
+  ],
+  "network_id": "tachi:00000008819873e925422c1ff0f99f7c",
+  "network": "tachi-signet-1",
+  "buyer_spent_sats": "171",
+  "note_setup_transfer_sats": "101",
+  "note": "Signet run evidence is recorded live on tachi-signet-1 and regenerated here per internal/SIGNET-BUILD-PLAN.md. The previous network's receipts are never relabeled; their history lives in an offline archive outside this repository."
+}

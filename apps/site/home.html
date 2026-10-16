@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Sats402 — x402 pay-per-request in native sats on Tachi</title>
+<meta name="description" content="SDK and protocol for x402 pay-per-request payments in native sats on Tachi. Agents pay per call for live data and inference. No accounts, no API keys." />
+<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="/assets/style.css" />
+<meta property="og:title" content="Sats402 — pay-per-request in native sats" />
+<meta property="og:description" content="SDK and protocol for x402 pay-per-request payments in native sats on Tachi. No accounts, no API keys, no custodian." />
+<meta property="og:url" content="https://sats402.vercel.app/" />
+<meta property="og:type" content="website" />
+<meta property="og:image" content="https://sats402.vercel.app/og.svg" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="Sats402 — pay-per-request in native sats" />
+<meta name="twitter:description" content="SDK and protocol for x402 payments in native sats on Tachi." />
+<meta name="twitter:image" content="https://sats402.vercel.app/og.svg" />
+</head>
+<body>
+
+<nav class="nav">
+  <a class="brand" href="/">Sats402<span class="dot-accent">.</span></a>
+  <div class="links">
+    <a class="active" href="/">Home</a>
+    <a href="/requirements">Requirements</a>
+    <a href="/services">Try it</a>
+    <a href="/verify">Verify</a>
+    <a href="/docs">Docs</a>
+    <a class="nav-gh" href="https://github.com/Johnenyen/Sats402" target="_blank" rel="noopener">GitHub ↗</a>
+  </div>
+</nav>
+
+<div class="wrap">
+
+  <div class="frame">
+    <div class="hero-grid">
+      <div class="hero-text">
+        <span class="eyebrow"><span class="dot"></span> Tachi hackathon · Bounty #6 · x402 on Bitcoin</span>
+        <h1>Pay-per-request,<br /><span class="grad">in native sats.</span></h1>
+        <p class="hero-tagline">No accounts. No API keys. No custodian.</p>
+        <p class="lede">
+          Sats402 is the SDK and protocol that enables autonomous AI agents to make
+          pay-per-request micropayments using native sats on Tachi. An agent pays
+          for each call by signing its own transaction; the service verifies by
+          reading the chain. Settlement is committed on-chain in about 5.5s (Tachi
+          consensus finality). The HTTP round-trip is what the agent sees.
+        </p>
+        <div class="cta">
+          <a class="btn btn-primary" href="/services">Run a real payment →</a>
+          <a class="cta-link" href="/services">Browse services →</a>
+          <a class="cta-link" href="/verify">Verify a settlement →</a>
+        </div>
+      </div>
+
+      <div class="hero-aside">
+        <div class="receipt-card">
+          <div class="receipt-header">
+            <span class="tag">Live Receipt · Tachi Settlement</span>
+            <span class="badge b-ok">committed</span>
+          </div>
+          <div class="receipt-amount-row">
+            <div class="receipt-amount-val">50 <span>sats</span></div>
+            <span class="pill lav">agent-to-agent</span>
+          </div>
+          <div class="receipt-fields">
+            <div class="receipt-field">
+              <span class="lbl">Tx ID</span>
+              <span class="val"><a href="/verify?tx=378ba365e7d12db32e75f059998917626654c0c54d53375e0ed5dda6242066ef">378ba365e7d1…242066ef</a></span>
+            </div>
+            <div class="receipt-field">
+              <span class="lbl">Epoch</span>
+              <span class="val">967602</span>
+            </div>
+            <div class="receipt-field">
+              <span class="lbl">Network</span>
+              <span class="val">tachi-signet-1</span>
+            </div>
+            <div class="receipt-field">
+              <span class="lbl">Scheme</span>
+              <span class="val">exact · tachi_tx</span>
+            </div>
+            <div class="receipt-field receipt-field-latency">
+              <span class="lbl">Latency</span>
+              <span class="val val-stack">
+                <span>on-chain commit</span>
+                <span class="val-sub">5,492 ms finality</span>
+              </span>
+            </div>
+          </div>
+          <div class="receipt-foot">
+            <span>Daemon-returned · re-fetchable</span>
+            <a href="/verify?tx=378ba365e7d12db32e75f059998917626654c0c54d53375e0ed5dda6242066ef">Verify tx →</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="hero-stat-row">
+      <div class="hero-stat-figure-col">
+        <div class="hero-stat-figure">20/20</div>
+        <div class="hero-stat-lbl">SETTLED ON-CHAIN</div>
+      </div>
+      <div class="hero-stat-desc">
+        <b>Request round-trip (what the agent sees):</b> the service serves only after the payment is committed on-chain, so the round-trip is the settlement time: <b>5,492 ms p50</b> across 20 consecutive calls on Tachi consensus. Re-fetchable by anyone.
+      </div>
+    </div>
+
+    <div class="proof-strip">
+      <div class="proof p1"><b>Three requests</b><code>402 PAYMENT-REQUIRED</code> → agent signs its own <code>tachi_tx</code> → <code>200</code> with the data and a <code>PAYMENT-RESPONSE</code> receipt.</div>
+      <div class="proof p2"><b>Verifiable</b>Every receipt is a transaction ID anyone can re-fetch from the daemon.</div>
+      <div class="proof p3"><b>Sovereign</b>The key that owns the sats signs the payment. Verifiers hold no key.</div>
+    </div>
+
+    <div class="features">
+      <span class="feature"><span class="k" style="background:var(--accent)"></span> Agent spend policy</span>
+      <span class="feature"><span class="k" style="background:#15803d"></span> Zero-custody paywall</span>
+      <span class="feature"><span class="k" style="background:var(--accent-2)"></span> OpenAPI 3.1 contracts</span>
+      <span class="feature"><span class="k" style="background:#0369a1"></span> Machine-readable catalog</span>
+    </div>
+  </div>
+
+  <div class="frame">
+    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px; margin-bottom:20px;">
+      <div>
+        <span class="eyebrow" style="margin-bottom:6px;"><span class="dot"></span> Live services &amp; demo</span>
+        <h2 style="margin:0;">Four live services, priced in sats, each one runnable.</h2>
+      </div>
+      <a class="btn btn-primary" href="/services">Run a real payment →</a>
+    </div>
+    <div class="demo-mini-steps">
+      <div class="demo-mini-step">
+        <b>1. Challenge (402)</b>
+        Service issues price in sats and payee key on first request.
+      </div>
+      <div class="demo-mini-step">
+        <b>2. Settlement (tachi_tx)</b>
+        Agent validates policy, signs, and broadcasts native sats transaction.
+      </div>
+      <div class="demo-mini-step">
+        <b>3. Delivery (200)</b>
+        Service verifies daemon settlement and delivers response with receipt.
+      </div>
+    </div>
+  </div>
+
+  <div class="frame">
+    <h2>Built for the agent economy, on Bitcoin</h2>
+    <p class="section-sub">
+      Sats402 is the x402 <code>exact</code> scheme on Tachi: the wire format the
+      standard defines, settled as a Tachi transaction. The money moves exactly
+      once, and the proof of payment is a transaction id anyone can check.
+    </p>
+    <div class="grid g3">
+      <div class="card">
+        <span class="tag">For agents</span>
+        <h3>A spending policy is part of the SDK</h3>
+        <p>Per-call cap, session budget, payee allowlist. A call that breaks policy
+        is refused locally, before any transaction exists.</p>
+      </div>
+      <div class="card">
+        <span class="tag">For services</span>
+        <h3>One middleware, zero custody</h3>
+        <p>Drop the paywall in front of any handler. It issues the challenge and
+        verifies payment by reading the chain. It never holds a key.</p>
+      </div>
+      <div class="card">
+        <span class="tag">For everyone</span>
+        <h3>Receipts you can re-fetch</h3>
+        <p>Every settlement is a tx id on Tachi. Check it on the
+        <a href="/verify">verify page</a> or with one command in the CLI
+        (from a checkout until the npm package is published).</p>
+      </div>
+    </div>
+  </div>
+
+  <p class="foot">
+    Sats402 — SDK and protocol for x402 pay-per-request payments in native sats on Tachi.<br />
+    Every settlement is a tx id on Tachi: daemon-returned and re-fetchable.
+  </p>
+</div>
+
+</body>
+</html>

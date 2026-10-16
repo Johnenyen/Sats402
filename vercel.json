@@ -1,0 +1,23 @@
+{
+  "cleanUrls": true,
+  "buildCommand": "npm run build && npm run stage-site",
+  "outputDirectory": "public",
+  "framework": null,
+  "functions": {
+    "api/demo/call.mjs": { "maxDuration": 60 },
+    "api/protected.mjs": { "maxDuration": 30 },
+    "api/services/inference.mjs": { "maxDuration": 60 },
+    "api/services/price.mjs": { "maxDuration": 30 },
+    "api/services/fees.mjs": { "maxDuration": 30 },
+    "api/services/network.mjs": { "maxDuration": 30 },
+    "api/receipt/[txid].mjs": { "maxDuration": 30 },
+    "api/verify-payment.mjs": { "maxDuration": 30 }
+  },
+  "redirects": [
+    { "source": "/demo", "destination": "/services", "permanent": false }
+  ],
+  "rewrites": [
+    { "source": "/receipts", "destination": "/verify" },
+    { "source": "/receipt/:txid", "destination": "/api/receipt/:txid" }
+  ]
+}
