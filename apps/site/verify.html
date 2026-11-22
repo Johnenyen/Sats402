@@ -82,12 +82,12 @@
     </p>
     <pre>node packages/cli/bin/sats402.mjs verify &lt;txid&gt;
 
-settlement   99296e2fdf89f7249584f5572829f32e52e1e780e64743ed75601e7c6acf512e
+settlement   2404dcce82c9299ecbacae9919c359c3cf1147979263d8f9045d280e295f4ea5
 state        committed   (daemon-returned)
-epoch        967603
+epoch        1256791
 outputs
   6267b312b2ff30bf…a7702338f  5 sats
-  55164f8d101788f3…8d3b00eb   58 sats
+  55164f8d101788f3…8d3b00eb   38 sats
 spent inputs
   55164f8d101788f3…8d3b00eb
 note: Record is daemon-returned and re-fetchable: anyone can repeat this lookup.</pre>
@@ -156,7 +156,7 @@ note: Record is daemon-returned and re-fetchable: anyone can repeat this lookup.
   $('txid').addEventListener('keydown', (e) => { if (e.key === 'Enter') lookUp(); });
   document.getElementById('example-tx').addEventListener('click', (e) => {
     e.preventDefault();
-    $('txid').value = '99296e2fdf89f7249584f5572829f32e52e1e780e64743ed75601e7c6acf512e';
+    $('txid').value = '2404dcce82c9299ecbacae9919c359c3cf1147979263d8f9045d280e295f4ea5';
     lookUp();
   });
   const preset = new URLSearchParams(location.search).get('tx');
@@ -185,7 +185,7 @@ note: Record is daemon-returned and re-fetchable: anyone can repeat this lookup.
           nonce: 'REPLACE_WITH_64_HEX_RANDOM_NONCE',
         },
         settlement: {
-          txHash: '99296e2fdf89f7249584f5572829f32e52e1e780e64743ed75601e7c6acf512e',
+          txHash: '2404dcce82c9299ecbacae9919c359c3cf1147979263d8f9045d280e295f4ea5',
           state: 'committed',
         },
       },
